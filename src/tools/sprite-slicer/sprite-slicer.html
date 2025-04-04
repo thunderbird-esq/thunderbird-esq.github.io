@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>SPRITE SLICER - Thunderbird OS</title>
-  <!-- Define onOpenCvReady before loading opencv.js -->
   <script>
     let opencvReady = false;
     function onOpenCvReady() {
@@ -13,6 +12,9 @@
     }
   </script>
   <script async src="/src/lib/opencv.js" onload="onOpenCvReady()"></script>
+  <!-- Add JSZip and FileSaver.js for ZIP export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
     html, body {
       margin: 0;
@@ -34,7 +36,7 @@
       overflow: hidden;
     }
     .sidebar {
-      width: 200px; /* Reduced from 250px */
+      width: 200px;
       background: #111;
       border-right: 2px solid #0ff;
       padding: 10px;
@@ -67,8 +69,8 @@
     .canvas-wrapper {
       position: relative;
       text-align: center;
-      max-width: 50%; /* Ensure canvases don't take up too much space */
-      max-height: 80vh; /* Limit height to fit workspace */
+      max-width: 50%;
+      max-height: 80vh;
     }
     .canvas-label {
       position: absolute;
@@ -79,7 +81,7 @@
       font-size: 12px;
     }
     .preview-section {
-      width: 100px; /* Reduced from 150px */
+      width: 100px;
       background: #111;
       border-left: 2px solid #0ff;
       padding: 10px;
@@ -92,7 +94,7 @@
       padding: 0;
       overflow: hidden;
     }
-    .selection-window {
+    .selection-window, .finishing-window {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -105,12 +107,12 @@
       flex-direction: column;
       align-items: center;
     }
-    .selection-window canvas {
+    .selection-window canvas, .finishing-window canvas {
       border: 1px solid #0ff;
       max-width: 400px;
       max-height: 400px;
     }
-    .selection-window button {
+    .selection-window button, .finishing-window button {
       background: #111;
       border: 1px solid #0ff;
       color: #0ff;
@@ -124,11 +126,48 @@
       height: 10px;
       background: #f00;
       cursor: pointer;
+      border-radius: 50%;
+      box-shadow: 0 0 3px #0ff;
+      transition: transform 0.2s, background 0.2s;
     }
-    h1 {
+    .selection-window .corner-handle:hover {
+      transform: scale(1.2);
+      background: #ff5555;
+    }
+    .selection-window .corner-handle.dragging {
+      transform: scale(1.5);
+      background: #ffaaaa;
+    }
+    .selection-window .corner-handle.top-left {
+      background: #f00;
+    }
+    .selection-window .corner-handle.top-right {
+      background: #0f0;
+    }
+    .selection-window .corner-handle.bottom-left {
+      background: #00f;
+    }
+    .selection-window .corner-handle.bottom-right {
+      background: #ff0;
+    }
+    .finishing-window select, .finishing-window input {
+      background: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+      padding: 5px;
+      margin: 5px;
+    }
+    .finishing-window .custom-size {
+      display: none;
+      margin: 10px 0;
+    }
+    h1, h2, h3 {
       margin: 0 0 10px;
       font-size: 20px;
       text-align: center;
+    }
+    h3 {
+      font-size: 16px;
     }
     .mode-toggle {
       margin-bottom: 10px;
@@ -221,7 +260,7 @@
     }
     .preview-section img {
       border: 1px solid #0ff;
-      max-width: 80px; /* Adjusted for smaller preview section */
+      max-width: 80px;
       max-height: 80px;
       cursor: pointer;
     }
@@ -243,6 +282,7 @@
       color: #0ff;
       padding: 5px 10px;
       cursor: pointer;
+      margin: 5px;
     }
     .toggle-buttons {
       position: absolute;
@@ -294,7 +334,7 @@
       }
       .preview-section {
         width: 100%;
-        height: 120px; /* Adjusted for smaller screens */
+        height: 120px;
         border-left: none;
         border-top: 2px solid #0ff;
       }
@@ -302,10 +342,14 @@
         height: 0;
         padding: 0;
       }
-      .selection-window {
+      .selection-window, .finishing-window {
         width: 90%;
         max-height: 80vh;
         overflow-y: auto;
+      }
+      .selection-window canvas, .finishing-window canvas {
+        max-width: 300px;
+        max-height: 300px;
       }
     }
   </style>
@@ -424,6 +468,8 @@
         </div>
       </div>
       <div class="action-section">
+        <button onclick="openFinishingWindow()">Open Finishing Window</button>
+        <button onclick="exportAsZip()">Export as ZIP</button>
         <button onclick="exportToBigGifs()">Export to BIG GIFS LAB</button>
       </div>
     </div>
@@ -436,6 +482,33 @@
       <div id="cornerHandles"></div>
       <button onclick="cropSelection()">Crop</button>
       <button onclick="closeSelectionWindow()">Close</button>
+    </div>
+    <div class="finishing-window" id="finishingWindow">
+      <h2>Finishing Options</h2>
+      <label>Frame Size Template:
+        <select id="frameSizeTemplate" onchange="toggleCustomSize(); updateFinishingPreview()">
+          <option value="gameboy_16x16">Game Boy (16x16)</option>
+          <option value="nes_8x8">NES (8x8)</option>
+          <option value="nes_16x16">NES (16x16)</option>
+          <option value="snes_16x16">SNES (16x16)</option>
+          <option value="snes_32x32">SNES (32x32)</option>
+          <option value="snes_64x64">SNES (64x64)</option>
+          <option value="genesis_32x32">Genesis (32x32)</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <div class="custom-size" id="customSizeInputs">
+        <label>Width: <input type="number" id="customWidth" min="1" value="16" oninput="updateFinishingPreview()"></label>
+        <label>Height: <input type="number" id="customHeight" min="1" value="16" oninput="updateFinishingPreview()"></label>
+      </div>
+      <label>Scale Factor:
+        <input type="range" id="scaleFactor" min="0.5" max="4" step="0.1" value="1" oninput="updateScaleFactorValue(); updateFinishingPreview()">
+        <span id="scaleFactorValue">1x</span>
+      </label>
+      <h3>Preview (First Frame)</h3>
+      <canvas id="finishingPreviewCanvas"></canvas>
+      <button onclick="applyFinishing()">Apply</button>
+      <button onclick="closeFinishingWindow()">Cancel</button>
     </div>
     <div class="loading-indicator" id="loadingIndicator">
       <p>Loading OpenCV.js...</p>
@@ -463,7 +536,7 @@
     let lassoPoints = [];
     let isLassoDrawing = false;
     let currentSelectionIndex = null;
-    let lassoMode = 'add'; // 'add' or 'subtract'
+    let lassoMode = 'add';
     let selectionCropRect = null;
     const canvas = document.getElementById('spriteCanvas');
     const ctx = canvas.getContext('2d');
@@ -475,6 +548,9 @@
     const selectionCanvas = document.getElementById('selectionCanvas');
     const selectionCtx = selectionCanvas.getContext('2d');
     const cornerHandles = document.getElementById('cornerHandles');
+    const finishingWindow = document.getElementById('finishingWindow');
+    const finishingPreviewCanvas = document.getElementById('finishingPreviewCanvas');
+    const finishingPreviewCtx = finishingPreviewCanvas.getContext('2d');
 
     const defaultSettings = {
       contrast: 1,
@@ -488,12 +564,11 @@
       cols: 1
     };
 
-    // Check if OpenCV.js loads within a timeout
     setTimeout(() => {
       if (!opencvReady) {
         document.getElementById('loadingIndicator').innerHTML = '<p style="color: #f00;">Failed to load OpenCV.js. Please check your network and try again.</p>';
       }
-    }, 10000); // 10 seconds timeout
+    }, 10000);
 
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -1020,7 +1095,7 @@
         if (manualTool === 'lasso') {
           lassoPoints = [{ x, y }];
           isLassoDrawing = true;
-          lassoMode = e.shiftKey ? 'add' : e.ctrlKey || e.metaKey ? 'subtract' : 'add';
+          lassoMode = e.shiftKey ? 'add' : (e.ctrlKey || e.metaKey) ? 'subtract' : 'add';
         } else if (document.getElementById('snapToGrid').checked) {
           const rows = parseInt(document.getElementById('rowsInput').value);
           const cols = parseInt(document.getElementById('colsInput').value);
@@ -1149,14 +1224,15 @@
           const height = maxY - minY;
 
           if (width > 5 && height > 5) {
-            const selection = {
-              x: minX,
-              y: minY,
-              width: width,
-              height: height
-            };
+            const lassoRect = { x: minX, y: minY, width, height };
 
             if (lassoMode === 'add') {
+              const selection = {
+                x: minX,
+                y: minY,
+                width: width,
+                height: height
+              };
               manualSelections.push(selection);
               const frameCanvas = document.createElement('canvas');
               const frameCtx = frameCanvas.getContext('2d');
@@ -1175,21 +1251,28 @@
               );
               frames.push(frameCanvas.toDataURL('image/png'));
             } else if (lassoMode === 'subtract') {
-              const tempSelections = [];
-              const tempFrames = [];
+              const newSelections = [];
+              const newFrames = [];
               manualSelections.forEach((sel, idx) => {
-                if (
-                  sel.x + sel.width < minX ||
-                  sel.x > maxX ||
-                  sel.y + sel.height < minY ||
-                  sel.y > maxY
-                ) {
-                  tempSelections.push(sel);
-                  tempFrames.push(frames[idx]);
+                const selRight = sel.x + sel.width;
+                const selBottom = sel.y + sel.height;
+                const lassoRight = lassoRect.x + lassoRect.width;
+                const lassoBottom = lassoRect.y + lassoRect.height;
+
+                const doesNotOverlap = (
+                  selRight < lassoRect.x ||
+                  sel.x > lassoRight ||
+                  selBottom < lassoRect.y ||
+                  sel.y > lassoBottom
+                );
+
+                if (doesNotOverlap) {
+                  newSelections.push(sel);
+                  newFrames.push(frames[idx]);
                 }
               });
-              manualSelections = tempSelections;
-              frames = tempFrames;
+              manualSelections = newSelections;
+              frames = newFrames;
             }
             updatePreview();
           }
@@ -1335,40 +1418,36 @@
       const rect = selections[index];
       selectionCanvas.width = rect.width;
       selectionCanvas.height = rect.height;
-      selectionCtx.drawImage(
-        spriteImage,
-        rect.x,
-        rect.y,
-        rect.width,
-        rect.height,
-        0,
-        0,
-        rect.width,
-        rect.height
-      );
       selectionCropRect = { x: 0, y: 0, width: rect.width, height: rect.height };
       setupCornerHandles();
+      drawSelectionCanvas();
       selectionWindow.style.display = 'flex';
     }
 
     function setupCornerHandles() {
       cornerHandles.innerHTML = '';
+      const offset = 5; // Offset handles outside the crop rectangle
       const corners = [
-        { id: 'top-left', x: selectionCropRect.x, y: selectionCropRect.y },
-        { id: 'top-right', x: selectionCropRect.x + selectionCropRect.width - 10, y: selectionCropRect.y },
-        { id: 'bottom-left', x: selectionCropRect.x, y: selectionCropRect.y + selectionCropRect.height - 10 },
-        { id: 'bottom-right', x: selectionCropRect.x + selectionCropRect.width - 10, y: selectionCropRect.y + selectionCropRect.height - 10 }
+        { id: 'top-left', x: selectionCropRect.x - offset, y: selectionCropRect.y - offset },
+        { id: 'top-right', x: selectionCropRect.x + selectionCropRect.width + offset - 10, y: selectionCropRect.y - offset },
+        { id: 'bottom-left', x: selectionCropRect.x - offset, y: selectionCropRect.y + selectionCropRect.height + offset - 10 },
+        { id: 'bottom-right', x: selectionCropRect.x + selectionCropRect.width + offset - 10, y: selectionCropRect.y + selectionCropRect.height + offset - 10 }
       ];
 
       corners.forEach(corner => {
         const handle = document.createElement('div');
-        handle.className = 'corner-handle';
+        handle.className = `corner-handle ${corner.id}`;
         handle.style.left = `${corner.x}px`;
         handle.style.top = `${corner.y}px`;
         handle.dataset.corner = corner.id;
+        handle.title = `Drag to adjust ${corner.id} corner`;
         handle.draggable = true;
         handle.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('text/plain', corner.id);
+          handle.classList.add('dragging');
+        });
+        handle.addEventListener('dragend', () => {
+          handle.classList.remove('dragging');
         });
         cornerHandles.appendChild(handle);
       });
@@ -1429,13 +1508,20 @@
         rect.width,
         rect.height
       );
+
+      // Draw semi-transparent overlay outside the crop area
+      selectionCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      selectionCtx.fillRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+      selectionCtx.clearRect(selectionCropRect.x, selectionCropRect.y, selectionCropRect.width, selectionCropRect.height);
+
+      // Draw the crop rectangle border
       selectionCtx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
       selectionCtx.lineWidth = 2;
       selectionCtx.strokeRect(selectionCropRect.x, selectionCropRect.y, selectionCropRect.width, selectionCropRect.height);
     }
 
     function cropSelection() {
-      if (!currentSelectionIndex) return;
+      if (currentSelectionIndex === null) return;
       const selections = mode === 'manual' ? manualSelections : autoSelections;
       const rect = selections[currentSelectionIndex];
       const newX = rect.x + selectionCropRect.x;
@@ -1467,8 +1553,8 @@
       );
       frames[currentSelectionIndex] = frameCanvas.toDataURL('image/png');
 
-      updatePreview();
       drawCanvas();
+      updatePreview();
       closeSelectionWindow();
     }
 
@@ -1477,6 +1563,226 @@
       currentSelectionIndex = null;
       selectionCropRect = null;
       cornerHandles.innerHTML = '';
+    }
+
+    function openFinishingWindow() {
+      if (frames.length === 0) {
+        alert('No frames to process. Please create some frames first.');
+        return;
+      }
+      document.getElementById('scaleFactor').value = 1;
+      updateScaleFactorValue();
+      finishingWindow.style.display = 'flex';
+      updateFinishingPreview();
+    }
+
+    function toggleCustomSize() {
+      const template = document.getElementById('frameSizeTemplate').value;
+      const customSizeInputs = document.getElementById('customSizeInputs');
+      customSizeInputs.style.display = template === 'custom' ? 'block' : 'none';
+      updateFinishingPreview();
+    }
+
+    function updateScaleFactorValue() {
+      const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+      document.getElementById('scaleFactorValue').textContent = `${scaleFactor.toFixed(1)}x`;
+    }
+
+    function updateFinishingPreview() {
+      if (frames.length === 0) return;
+
+      const template = document.getElementById('frameSizeTemplate').value;
+      let newWidth, newHeight;
+      switch (template) {
+        case 'gameboy_16x16':
+          newWidth = 16;
+          newHeight = 16;
+          break;
+        case 'nes_8x8':
+          newWidth = 8;
+          newHeight = 8;
+          break;
+        case 'nes_16x16':
+          newWidth = 16;
+          newHeight = 16;
+          break;
+        case 'snes_16x16':
+          newWidth = 16;
+          newHeight = 16;
+          break;
+        case 'snes_32x32':
+          newWidth = 32;
+          newHeight = 32;
+          break;
+        case 'snes_64x64':
+          newWidth = 64;
+          newHeight = 64;
+          break;
+        case 'genesis_32x32':
+          newWidth = 32;
+          newHeight = 32;
+          break;
+        case 'custom':
+          newWidth = parseInt(document.getElementById('customWidth').value) || 16;
+          newHeight = parseInt(document.getElementById('customHeight').value) || 16;
+          break;
+        default:
+          newWidth = 16;
+          newHeight = 16;
+      }
+
+      const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      const rect = selections[0]; // Preview the first frame
+      const frameImg = new Image();
+      frameImg.src = frames[0];
+      frameImg.onload = () => {
+        finishingPreviewCanvas.width = newWidth;
+        finishingPreviewCanvas.height = newHeight;
+        finishingPreviewCtx.clearRect(0, 0, newWidth, newHeight);
+
+        const scaledWidth = rect.width * scaleFactor;
+        const scaledHeight = rect.height * scaleFactor;
+        const offsetX = (newWidth - scaledWidth) / 2;
+        const offsetY = (newHeight - scaledHeight) / 2;
+
+        finishingPreviewCtx.drawImage(
+          frameImg,
+          0,
+          0,
+          rect.width,
+          rect.height,
+          offsetX,
+          offsetY,
+          scaledWidth,
+          scaledHeight
+        );
+
+        // Draw a border to indicate the frame size
+        finishingPreviewCtx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+        finishingPreviewCtx.lineWidth = 1;
+        finishingPreviewCtx.strokeRect(0, 0, newWidth, newHeight);
+      };
+    }
+
+    function applyFinishing() {
+      const template = document.getElementById('frameSizeTemplate').value;
+      let newWidth, newHeight;
+      switch (template) {
+        case 'gameboy_16x16':
+          newWidth = 16;
+          newHeight = 16;
+          break;
+        case 'nes_8x8':
+          newWidth = 8;
+          newHeight = 8;
+          break;
+        case 'nes_16x16':
+          newWidth = 16;
+          newHeight = 16;
+          break;
+        case 'snes_16x16':
+          newWidth = 16;
+          newHeight = 16;
+          break;
+        case 'snes_32x32':
+          newWidth = 32;
+          newHeight = 32;
+          break;
+        case 'snes_64x64':
+          newWidth = 64;
+          newHeight = 64;
+          break;
+        case 'genesis_32x32':
+          newWidth = 32;
+          newHeight = 32;
+          break;
+        case 'custom':
+          newWidth = parseInt(document.getElementById('customWidth').value) || 16;
+          newHeight = parseInt(document.getElementById('customHeight').value) || 16;
+          break;
+        default:
+          newWidth = 16;
+          newHeight = 16;
+      }
+
+      const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+
+      frames = frames.map((frameData, index) => {
+        const rect = selections[index];
+        const frameImg = new Image();
+        frameImg.src = frameData;
+        const frameCanvas = document.createElement('canvas');
+        const frameCtx = frameCanvas.getContext('2d');
+        frameCanvas.width = newWidth;
+        frameCanvas.height = newHeight;
+
+        const scaledWidth = rect.width * scaleFactor;
+        const scaledHeight = rect.height * scaleFactor;
+        const offsetX = (newWidth - scaledWidth) / 2;
+        const offsetY = (newHeight - scaledHeight) / 2;
+
+        frameCtx.drawImage(
+          frameImg,
+          0,
+          0,
+          rect.width,
+          rect.height,
+          offsetX,
+          offsetY,
+          scaledWidth,
+          scaledHeight
+        );
+
+        // Update the selection dimensions (x and y remain the same as they refer to the sprite sheet)
+        selections[index].width = newWidth;
+        selections[index].height = newHeight;
+
+        return frameCanvas.toDataURL('image/png');
+      });
+
+      updatePreview();
+      closeFinishingWindow();
+    }
+
+    function closeFinishingWindow() {
+      finishingWindow.style.display = 'none';
+    }
+
+    function exportAsZip() {
+      if (frames.length === 0) {
+        alert('No frames to export!');
+        return;
+      }
+
+      const zip = new JSZip();
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+
+      // Add frames to the ZIP
+      frames.forEach((frameData, index) => {
+        const base64Data = frameData.split(',')[1];
+        const fileName = `frame_${String(index + 1).padStart(3, '0')}.png`;
+        zip.file(fileName, base64Data, { base64: true });
+      });
+
+      // Add metadata as JSON
+      const exportData = frames.map((frameData, index) => ({
+        frame: `frame_${String(index + 1).padStart(3, '0')}.png`,
+        metadata: {
+          index: index + 1,
+          x: selections[index].x,
+          y: selections[index].y,
+          width: selections[index].width,
+          height: selections[index].height
+        }
+      }));
+      zip.file('metadata.json', JSON.stringify(exportData, null, 2));
+
+      // Generate and download the ZIP
+      zip.generateAsync({ type: 'blob' }).then((content) => {
+        saveAs(content, 'sprite_frames.zip');
+      });
     }
 
     function exportToBigGifs() {
