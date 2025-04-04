@@ -53,9 +53,26 @@
     .auto-controls, .manual-controls {
       display: none;
       margin: 10px 0;
+      width: 100%;
+      max-width: 600px;
+      background: #111;
+      padding: 10px;
+      border: 1px solid #0ff;
+    }
+    .auto-controls label, .manual-controls label {
+      display: block;
+      margin: 5px 0;
     }
     .auto-controls input[type="range"], .manual-controls input[type="range"] {
       width: 150px;
+      margin: 0 5px;
+    }
+    .auto-controls input[type="number"] {
+      width: 60px;
+      background: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+      padding: 5px;
       margin: 0 5px;
     }
     .controls input[type="file"] {
@@ -77,9 +94,16 @@
     .canvas-container {
       position: relative;
       margin-bottom: 20px;
+      display: flex;
+      gap: 20px;
     }
     canvas {
       border: 1px solid #0ff;
+      max-width: 100%;
+      max-height: 400px;
+    }
+    #edgeCanvas {
+      border: 1px solid #f00;
       max-width: 100%;
       max-height: 400px;
     }
@@ -130,8 +154,34 @@
       </div>
       <input type="file" id="spriteSheetInput" accept="image/*">
       <div class="auto-controls" id="autoControls">
-        <label>Edge Threshold 1: <input type="range" id="threshold1" min="0" max="255" value="50" oninput="autoSlice()"></label>
-        <label>Edge Threshold 2: <input type="range" id="threshold2" min="0" max="255" value="150" oninput="autoSlice()"></label>
+        <h3>Edge Detection Settings</h3>
+        <label title="Apply Gaussian blur to reduce noise before edge detection">
+          Blur Amount: <input type="range" id="blurAmount" min="1" max="15" step="2" value="3" oninput="autoSlice()">
+        </label>
+        <label title="Lower threshold for Canny edge detection (more edges if lower)">
+          Edge Threshold 1: <input type="range" id="threshold1" min="0" max="255" value="50" oninput="autoSlice()">
+        </label>
+        <label title="Upper threshold for Canny edge detection (fewer edges if higher)">
+          Edge Threshold 2: <input type="range" id="threshold2" min="0" max="255" value="150" oninput="autoSlice()">
+        </label>
+        <label title="Minimum area (in pixels) for a contour to be considered a frame">
+          Min Contour Area: <input type="range" id="minContourArea" min="100" max="5000" value="100" oninput="autoSlice()">
+        </label>
+        <label title="Merge nearby contours into a single frame">
+          <input type="checkbox" id="mergeContours" checked onchange="autoSlice()"> Merge Nearby Contours
+        </label>
+        <label title="Distance (in pixels) for merging nearby contours">
+          Merge Distance: <input type="range" id="mergeDistance" min="0" max="50" value="10" oninput="autoSlice()">
+        </label>
+        <h3>Grid Fallback (if edge detection fails)</h3>
+        <label title="Number of rows for grid-based slicing">
+          Rows: <input type="number" id="rowsInput" min="1" value="1">
+        </label>
+        <label title="Number of columns for grid-based slicing">
+          Columns: <input type="number" id="colsInput" min="1" value="1">
+        </label>
+        <button onclick="sliceWithGrid()">Use Grid Slicing</button>
+        <button onclick="resetSettings()">Reset to Defaults</button>
       </div>
       <div class="manual-controls" id="manualControls">
         <label>Zoom: <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1" oninput="updateZoom()"></label>
@@ -141,6 +191,7 @@
     <div class="status" id="status">Frames: 0</div>
     <div class="canvas-container">
       <canvas id="spriteCanvas"></canvas>
+      <canvas id="edgeCanvas"></canvas>
     </div>
     <div class="preview-section" id="previewSection"></div>
     <div class="action-section">
@@ -164,8 +215,21 @@
     let opencvReady = false;
     const canvas = document.getElementById('spriteCanvas');
     const ctx = canvas.getContext('2d');
+    const edgeCanvas = document.getElementById('edgeCanvas');
+    const edgeCtx = edgeCanvas.getContext('2d');
     const previewSection = document.getElementById('previewSection');
     const status = document.getElementById('status');
+
+    const defaultSettings = {
+      blurAmount: 3,
+      threshold1: 50,
+      threshold2: 150,
+      minContourArea: 100,
+      mergeContours: true,
+      mergeDistance: 10,
+      rows: 1,
+      cols: 1
+    };
 
     function onOpenCvReady() {
       opencvReady = true;
@@ -197,14 +261,33 @@
         spriteImage.onload = () => {
           canvas.width = spriteImage.width;
           canvas.height = spriteImage.height;
+          edgeCanvas.width = spriteImage.width;
+          edgeCanvas.height = spriteImage.height;
           zoom = 1;
           panX = 0;
           panY = 0;
+          // Suggest grid dimensions based on image size
+          const suggestedRows = Math.max(1, Math.round(spriteImage.height / 32));
+          const suggestedCols = Math.max(1, Math.round(spriteImage.width / 32));
+          document.getElementById('rowsInput').value = suggestedRows;
+          document.getElementById('colsInput').value = suggestedCols;
           drawCanvas();
           if (mode === 'auto' && opencvReady) autoSlice();
         };
       }
     });
+
+    function resetSettings() {
+      document.getElementById('blurAmount').value = defaultSettings.blurAmount;
+      document.getElementById('threshold1').value = defaultSettings.threshold1;
+      document.getElementById('threshold2').value = defaultSettings.threshold2;
+      document.getElementById('minContourArea').value = defaultSettings.minContourArea;
+      document.getElementById('mergeContours').checked = defaultSettings.mergeContours;
+      document.getElementById('mergeDistance').value = defaultSettings.mergeDistance;
+      document.getElementById('rowsInput').value = defaultSettings.rows;
+      document.getElementById('colsInput').value = defaultSettings.cols;
+      if (spriteImage && mode === 'auto') autoSlice();
+    }
 
     function autoSlice() {
       if (!spriteImage || !opencvReady) return;
@@ -219,9 +302,23 @@
       // Convert canvas to OpenCV Mat
       const src = cv.imread(tempCanvas);
       const gray = new cv.Mat();
+      const blurred = new cv.Mat();
       const edges = new cv.Mat();
+
+      // Preprocessing: Convert to grayscale and apply blur
       cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-      cv.Canny(gray, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+      const blurSize = parseInt(document.getElementById('blurAmount').value);
+      cv.GaussianBlur(gray, blurred, new cv.Size(blurSize, blurSize), 0);
+
+      // Apply Canny edge detection
+      cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+
+      // Display edges on the edge canvas
+      edgeCtx.clearRect(0, 0, edgeCanvas.width, edgeCanvas.height);
+      const edgeMat = new cv.Mat();
+      cv.cvtColor(edges, edgeMat, cv.COLOR_GRAY2RGBA);
+      cv.imshow(edgeCanvas, edgeMat);
+      edgeMat.delete();
 
       // Find contours
       const contours = new cv.MatVector();
@@ -229,39 +326,150 @@
       cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
       // Process contours to find bounding rectangles
-      autoSelections = [];
-      frames = [];
+      let rects = [];
+      const minContourArea = parseInt(document.getElementById('minContourArea').value);
       for (let i = 0; i < contours.size(); i++) {
         const contour = contours.get(i);
-        const rect = cv.boundingRect(contour);
-        if (rect.width > 10 && rect.height > 10) { // Filter out small noise
-          autoSelections.push(rect);
-          const frameCanvas = document.createElement('canvas');
-          const frameCtx = frameCanvas.getContext('2d');
-          frameCanvas.width = rect.width;
-          frameCanvas.height = rect.height;
-          frameCtx.drawImage(
-            spriteImage,
-            rect.x,
-            rect.y,
-            rect.width,
-            rect.height,
-            0,
-            0,
-            rect.width,
-            rect.height
-          );
-          frames.push(frameCanvas.toDataURL('image/png'));
+        const area = cv.contourArea(contour);
+        if (area >= minContourArea) {
+          const rect = cv.boundingRect(contour);
+          rects.push(rect);
         }
+      }
+
+      // Merge nearby contours if enabled
+      if (document.getElementById('mergeContours').checked) {
+        const mergeDistance = parseInt(document.getElementById('mergeDistance').value);
+        rects = mergeNearbyRects(rects, mergeDistance);
+      }
+
+      // Convert merged rectangles to selections
+      autoSelections = [];
+      frames = [];
+      rects.forEach((rect) => {
+        autoSelections.push(rect);
+        const frameCanvas = document.createElement('canvas');
+        const frameCtx = frameCanvas.getContext('2d');
+        frameCanvas.width = rect.width;
+        frameCanvas.height = rect.height;
+        frameCtx.drawImage(
+          spriteImage,
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          0,
+          0,
+          rect.width,
+          rect.height
+        );
+        frames.push(frameCanvas.toDataURL('image/png'));
+      });
+
+      // Update status with feedback
+      if (frames.length === 0) {
+        status.textContent = 'No frames detected. Try adjusting the settings (e.g., lower thresholds, reduce blur, or increase min contour area).';
+      } else {
+        status.textContent = `Frames: ${frames.length}`;
       }
 
       // Clean up
       src.delete();
       gray.delete();
+      blurred.delete();
       edges.delete();
       contours.delete();
       hierarchy.delete();
 
+      updatePreview();
+      drawCanvas();
+    }
+
+    function mergeNearbyRects(rects, mergeDistance) {
+      let merged = [];
+      let used = new Array(rects.length).fill(false);
+
+      for (let i = 0; i < rects.length; i++) {
+        if (used[i]) continue;
+        let currentRect = { ...rects[i] };
+        used[i] = true;
+
+        for (let j = 0; j < rects.length; j++) {
+          if (i === j || used[j]) continue;
+          const otherRect = rects[j];
+          const expandedRect = {
+            x: currentRect.x - mergeDistance,
+            y: currentRect.y - mergeDistance,
+            width: currentRect.width + 2 * mergeDistance,
+            height: currentRect.height + 2 * mergeDistance
+          };
+
+          if (
+            otherRect.x >= expandedRect.x &&
+            otherRect.x + otherRect.width <= expandedRect.x + expandedRect.width &&
+            otherRect.y >= expandedRect.y &&
+            otherRect.y + otherRect.height <= expandedRect.y + expandedRect.height
+          ) {
+            // Merge the rectangles
+            const minX = Math.min(currentRect.x, otherRect.x);
+            const minY = Math.min(currentRect.y, otherRect.y);
+            const maxX = Math.max(currentRect.x + currentRect.width, otherRect.x + otherRect.width);
+            const maxY = Math.max(currentRect.y + currentRect.height, otherRect.y + otherRect.height);
+            currentRect = {
+              x: minX,
+              y: minY,
+              width: maxX - minX,
+              height: maxY - minY
+            };
+            used[j] = true;
+            j = -1; // Restart the loop to check for more merges
+          }
+        }
+        merged.push(currentRect);
+      }
+      return merged;
+    }
+
+    function sliceWithGrid() {
+      if (!spriteImage) {
+        alert('Please upload a sprite sheet.');
+        return;
+      }
+
+      const rows = parseInt(document.getElementById('rowsInput').value);
+      const cols = parseInt(document.getElementById('colsInput').value);
+      const cellWidth = spriteImage.width / cols;
+      const cellHeight = spriteImage.height / rows;
+
+      autoSelections = [];
+      frames = [];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const rect = {
+            x: col * cellWidth,
+            y: row * cellHeight,
+            width: cellWidth,
+            height: cellHeight
+          };
+          autoSelections.push(rect);
+          const frameCanvas = document.createElement('canvas');
+          const frameCtx = frameCanvas.getContext('2d');
+          frameCanvas.width = cellWidth;
+          frameCanvas.height = cellHeight;
+          frameCtx.drawImage(
+            spriteImage,
+            rect.x,
+            rect.y,
+            cellWidth,
+            cellHeight,
+            0,
+            0,
+            cellWidth,
+            cellHeight
+          );
+          frames.push(frameCanvas.toDataURL('image/png'));
+        }
+      }
       updatePreview();
       drawCanvas();
     }
@@ -458,7 +666,7 @@
         });
         previewSection.appendChild(frameImg);
       });
-      status.textContent = `Frames: ${frames.length}`;
+      status.textContent = frames.length === 0 ? status.textContent : `Frames: ${frames.length}`;
     }
 
     function exportToBigGifs() {
