@@ -48,6 +48,18 @@
       overflow: auto;
       gap: 20px;
     }
+    .canvas-wrapper {
+      position: relative;
+      text-align: center;
+    }
+    .canvas-label {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      right: 0;
+      color: #0ff;
+      font-size: 12px;
+    }
     .preview-section {
       width: 200px;
       background: #111;
@@ -209,6 +221,14 @@
       </div>
       <input type="file" id="spriteSheetInput" accept="image/*">
       <details open>
+        <summary>General Settings</summary>
+        <div class="control-group">
+          <label title="Enable corner adjustment for frames">
+            <input type="checkbox" id="adjustCorners" checked onchange="drawCanvas()"> Adjust Corners
+          </label>
+        </div>
+      </details>
+      <details open>
         <summary>Grid Settings</summary>
         <div class="control-group">
           <label title="Number of rows for the grid">
@@ -224,6 +244,11 @@
         <details open>
           <summary>Edge Detection Settings</summary>
           <div class="control-group">
+            <label title="Adjust contrast to improve edge detection">
+              Contrast:
+              <input type="range" id="contrast" min="0.5" max="2" step="0.1" value="1" oninput="syncInput('contrast'); autoSlice()">
+              <input type="number" id="contrastNum" min="0.5" max="2" step="0.1" value="1" oninput="syncSlider('contrast'); autoSlice()">
+            </label>
             <label title="Apply Gaussian blur to reduce noise before edge detection">
               Blur Amount:
               <input type="range" id="blurAmount" min="1" max="15" step="2" value="3" oninput="syncInput('blurAmount'); autoSlice()">
@@ -275,8 +300,14 @@
     <div class="main-content">
       <div class="status" id="status">Frames: 0</div>
       <div class="workspace">
-        <canvas id="spriteCanvas"></canvas>
-        <canvas id="edgeCanvas"></canvas>
+        <div class="canvas-wrapper">
+          <div class="canvas-label">Sprite Sheet</div>
+          <canvas id="spriteCanvas"></canvas>
+        </div>
+        <div class="canvas-wrapper">
+          <div class="canvas-label">Edge Detection Preview</div>
+          <canvas id="edgeCanvas"></canvas>
+        </div>
       </div>
       <div class="action-section">
         <button onclick="exportToBigGifs()">Export to BIG GIFS LAB</button>
@@ -304,6 +335,7 @@
     let opencvReady = false;
     let selectedCorner = null;
     let selectedRectIndex = null;
+    let selectedArray = null; // To track whether we're adjusting autoSelections or manualSelections
     const canvas = document.getElementById('spriteCanvas');
     const ctx = canvas.getContext('2d');
     const edgeCanvas = document.getElementById('edgeCanvas');
@@ -312,6 +344,7 @@
     const status = document.getElementById('status');
 
     const defaultSettings = {
+      contrast: 1,
       blurAmount: 3,
       threshold1: 50,
       threshold2: 150,
@@ -412,6 +445,8 @@
     }
 
     function resetSettings() {
+      document.getElementById('contrast').value = defaultSettings.contrast;
+      document.getElementById('contrastNum').value = defaultSettings.contrast;
       document.getElementById('blurAmount').value = defaultSettings.blurAmount;
       document.getElementById('blurAmountNum').value = defaultSettings.blurAmount;
       document.getElementById('threshold1').value = defaultSettings.threshold1;
@@ -446,13 +481,20 @@
       // Convert canvas to OpenCV Mat
       const src = cv.imread(tempCanvas);
       const gray = new cv.Mat();
+      const adjusted = new cv.Mat();
       const blurred = new cv.Mat();
       const edges = new cv.Mat();
 
-      // Preprocessing: Convert to grayscale and apply blur
+      // Preprocessing: Convert to grayscale
       cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+      // Adjust contrast
+      const contrast = parseFloat(document.getElementById('contrast').value);
+      gray.convertTo(adjusted, -1, contrast, 0);
+
+      // Apply Gaussian blur
       const blurSize = parseInt(document.getElementById('blurAmount').value);
-      cv.GaussianBlur(gray, blurred, new cv.Size(blurSize, blurSize), 0);
+      cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
 
       // Apply Canny edge detection
       cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
@@ -537,6 +579,7 @@
       // Clean up
       src.delete();
       gray.delete();
+      adjusted.delete();
       blurred.delete();
       edges.delete();
       contours.delete();
@@ -676,44 +719,32 @@
         ctx.restore();
       }
 
-      if (mode === 'auto' || mode === 'refine') {
-        // Draw auto-detected selections
-        ctx.save();
-        ctx.translate(panX, panY);
-        ctx.scale(zoom, zoom);
-        autoSelections.forEach((selection, index) => {
-          ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-          ctx.lineWidth = 2 / zoom;
-          ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
-          ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
-          ctx.font = `${12 / zoom}px monospace`;
-          ctx.fillText(`Frame ${index + 1}`, selection.x + 5 / zoom, selection.y + 15 / zoom);
-          if (mode === 'refine') {
-            // Draw corner handles
-            const handleSize = 8 / zoom;
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-            ctx.fillRect(selection.x - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-left
-            ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-right
-            ctx.fillRect(selection.x - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-left
-            ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-right
-          }
-        });
-        ctx.restore();
-      } else if (mode === 'manual') {
-        // Draw manual selections with bounding boxes and labels
-        ctx.save();
-        ctx.translate(panX, panY);
-        ctx.scale(zoom, zoom);
-        manualSelections.forEach((selection, index) => {
-          ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-          ctx.lineWidth = 2 / zoom;
-          ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
-          ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
-          ctx.font = `${12 / zoom}px monospace`;
-          ctx.fillText(`Frame ${index + 1}`, selection.x + 5 / zoom, selection.y + 15 / zoom);
-        });
-        ctx.restore();
-      }
+      // Draw selections with corner handles if adjustCorners is enabled
+      const adjustCorners = document.getElementById('adjustCorners').checked;
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(zoom, zoom);
+      selections.forEach((selection, index) => {
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+        ctx.lineWidth = 2 / zoom;
+        ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+        ctx.font = `${12 / zoom}px monospace`;
+        ctx.fillText(`Frame ${index + 1}`, selection.x + 5 / zoom, selection.y + 15 / zoom);
+
+        if (adjustCorners) {
+          // Draw corner handles
+          const handleSize = 10 / zoom; // Increased handle size for easier clicking
+          ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+          ctx.fillRect(selection.x - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-left
+          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-right
+          ctx.fillRect(selection.x - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-left
+          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-right
+        }
+      });
+      ctx.restore();
     }
 
     canvas.addEventListener('mousedown', (e) => {
@@ -729,13 +760,17 @@
         return;
       }
 
-      if (mode === 'refine') {
-        // Check if a corner handle is clicked
-        const handleSize = 8 / zoom;
+      // Check if we're adjusting corners
+      const adjustCorners = document.getElementById('adjustCorners').checked;
+      if (adjustCorners) {
+        const selections = mode === 'manual' ? manualSelections : autoSelections;
+        const handleSize = 10 / zoom; // Match the handle size used in drawCanvas
         selectedCorner = null;
         selectedRectIndex = null;
-        for (let i = 0; i < autoSelections.length; i++) {
-          const sel = autoSelections[i];
+        selectedArray = null;
+
+        for (let i = 0; i < selections.length; i++) {
+          const sel = selections[i];
           const corners = [
             { corner: 'top-left', x: sel.x, y: sel.y },
             { corner: 'top-right', x: sel.x + sel.width, y: sel.y },
@@ -745,16 +780,20 @@
           for (const corner of corners) {
             const distX = x - corner.x;
             const distY = y - corner.y;
-            if (Math.abs(distX) <= handleSize / 2 && Math.abs(distY) <= handleSize / 2) {
+            if (Math.abs(distX) <= handleSize && Math.abs(distY) <= handleSize) { // Increased sensitivity
               selectedCorner = corner.corner;
               selectedRectIndex = i;
+              selectedArray = mode === 'manual' ? manualSelections : autoSelections;
               isDragging = true;
               break;
             }
           }
           if (isDragging) break;
         }
-      } else if (mode === 'manual') {
+      }
+
+      // If not adjusting corners, proceed with manual selection
+      if (!isDragging && mode === 'manual') {
         startX = x;
         startY = y;
         if (document.getElementById('snapToGrid').checked) {
@@ -785,8 +824,8 @@
         return;
       }
 
-      if (isDragging && mode === 'refine' && selectedRectIndex !== null && selectedCorner !== null) {
-        const sel = autoSelections[selectedRectIndex];
+      if (isDragging && selectedRectIndex !== null && selectedCorner !== null && selectedArray !== null) {
+        const sel = selectedArray[selectedRectIndex];
         let newX = sel.x;
         let newY = sel.y;
         let newWidth = sel.width;
@@ -820,7 +859,7 @@
 
         // Enforce minimum size and ensure the rectangle stays within bounds
         if (newWidth > 5 && newHeight > 5 && newX >= 0 && newY >= 0 && (newX + newWidth) <= spriteImage.width && (newY + newHeight) <= spriteImage.height) {
-          autoSelections[selectedRectIndex] = {
+          selectedArray[selectedRectIndex] = {
             x: newX,
             y: newY,
             width: newWidth,
@@ -829,7 +868,7 @@
           updateFrame(selectedRectIndex);
         }
         drawCanvas();
-      } else if (isDragging && mode === 'manual') {
+      } else if (isDragging && mode === 'manual' && selectedRectIndex === null) {
         let endX = x;
         let endY = y;
         if (document.getElementById('snapToGrid').checked) {
@@ -857,10 +896,11 @@
         return;
       }
 
-      if (isDragging && mode === 'refine') {
+      if (isDragging && selectedRectIndex !== null) {
         isDragging = false;
         selectedCorner = null;
         selectedRectIndex = null;
+        selectedArray = null;
         drawCanvas();
         return;
       }
@@ -922,7 +962,8 @@
     });
 
     function updateFrame(index) {
-      const rect = autoSelections[index];
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      const rect = selections[index];
       const frameCanvas = document.createElement('canvas');
       const frameCtx = frameCanvas.getContext('2d');
       frameCanvas.width = rect.width;
@@ -998,7 +1039,26 @@
     }
 
     function exportToBigGifs() {
-      alert('Export to BIG GIFS LAB functionality coming soon!');
+      if (frames.length === 0) {
+        alert('No frames to export!');
+        return;
+      }
+
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      const exportData = frames.map((frameData, index) => ({
+        frame: frameData,
+        metadata: {
+          index: index + 1,
+          x: selections[index].x,
+          y: selections[index].y,
+          width: selections[index].width,
+          height: selections[index].height
+        }
+      }));
+
+      // For now, display the export data as a JSON string
+      alert('Exporting to BIG GIFS LAB:\n' + JSON.stringify(exportData, null, 2));
+      console.log('Exported frames with metadata:', exportData);
     }
   </script>
 </body>
