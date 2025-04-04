@@ -18,10 +18,10 @@
       align-items: center;
     }
     .container {
-      width: 1024px; /* Updated resolution */
-      height: 1024px; /* Updated resolution */
+      width: 1024px;
+      height: 1024px;
       background: url('../../assets/images/nova-background.png') no-repeat center center;
-      background-size: 1024px 1024px; /* Fixed resolution */
+      background-size: 1024px 1024px;
       position: relative;
       display: flex;
       justify-content: center;
@@ -49,15 +49,14 @@
       opacity: 0;
       transition: opacity 1s ease-in-out;
       display: none;
-      text-align: center;
+      text-align: left; /* Align left for precise positioning */
       color: #0ff;
-      font-size: 18px; /* Scaled up for 1024x1024 */
+      font-size: 24px; /* Scaled up for 1024x1024 */
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%; /* Ensure text fits within the square */
-      max-height: 1024px;
+      top: 10px; /* 10px from the top */
+      left: 10px; /* 10px from the left */
+      width: calc(100% - 20px); /* Account for left padding */
+      max-height: calc(100% - 20px); /* Account for top padding */
       overflow: hidden;
     }
     .boot-text .ok { color: #0f0; }
@@ -136,7 +135,11 @@
       "Verifying hexadecimal transport matrix... <span class='ok'>[OK]</span>",
       "Reticulating splines... <span class='ok'>[OK]</span>",
       "Stabilizing voltage envelope... <span class='ok'>[OK]</span>",
-      "Initializing THUNDERBIRD OS..."
+      "Initializing THUNDERBIRD OS...",
+      "Mapping virtual memory segments... <span class='ok'>[OK]</span>", // Added
+      "Calibrating temporal buffers... <span class='ok'>[OK]</span>", // Added
+      "Syncing with orbital relays... <span class='ok'>[OK]</span>", // Added
+      "Finalizing system integrity check... <span class='ok'>[OK]</span>" // Added
     ];
 
     let i = 0;
