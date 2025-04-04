@@ -40,6 +40,8 @@
       flex-direction: column;
       align-items: center;
       margin-bottom: 20px;
+      width: 100%;
+      max-width: 600px;
     }
     .mode-toggle {
       margin-bottom: 10px;
@@ -50,24 +52,35 @@
     .mode-toggle input[type="radio"] {
       margin: 0 2px;
     }
-    .auto-controls, .manual-controls {
-      display: none;
+    details {
       margin: 10px 0;
       width: 100%;
-      max-width: 600px;
+    }
+    summary {
       background: #111;
-      padding: 10px;
+      padding: 5px;
+      cursor: pointer;
       border: 1px solid #0ff;
     }
-    .auto-controls label, .manual-controls label {
+    .auto-controls, .manual-controls, .refine-controls {
+      display: none;
+      margin: 10px 0;
+      padding: 10px;
+      background: #111;
+      border: 1px solid #0ff;
+    }
+    .control-group {
+      margin: 5px 0;
+    }
+    .control-group label {
       display: block;
       margin: 5px 0;
     }
-    .auto-controls input[type="range"], .manual-controls input[type="range"] {
+    .control-group input[type="range"] {
       width: 150px;
       margin: 0 5px;
     }
-    .auto-controls input[type="number"] {
+    .control-group input[type="number"] {
       width: 60px;
       background: #111;
       border: 1px solid #0ff;
@@ -150,42 +163,72 @@
     <div class="controls">
       <div class="mode-toggle">
         <label><input type="radio" name="mode" value="auto" checked onclick="toggleMode()"> Auto Mode</label>
+        <label><input type="radio" name="mode" value="refine" onclick="toggleMode()"> Refine Mode</label>
         <label><input type="radio" name="mode" value="manual" onclick="toggleMode()"> Manual Mode</label>
       </div>
       <input type="file" id="spriteSheetInput" accept="image/*">
+      <details open>
+        <summary>Grid Settings</summary>
+        <div class="control-group">
+          <label title="Number of rows for the grid">
+            Rows: <input type="number" id="rowsInput" min="1" value="1" oninput="updateGridSettings()">
+          </label>
+          <label title="Number of columns for the grid">
+            Columns: <input type="number" id="colsInput" min="1" value="1" oninput="updateGridSettings()">
+          </label>
+          <button onclick="sliceWithGrid()">Use Grid Slicing</button>
+        </div>
+      </details>
       <div class="auto-controls" id="autoControls">
-        <h3>Edge Detection Settings</h3>
-        <label title="Apply Gaussian blur to reduce noise before edge detection">
-          Blur Amount: <input type="range" id="blurAmount" min="1" max="15" step="2" value="3" oninput="autoSlice()">
-        </label>
-        <label title="Lower threshold for Canny edge detection (more edges if lower)">
-          Edge Threshold 1: <input type="range" id="threshold1" min="0" max="255" value="50" oninput="autoSlice()">
-        </label>
-        <label title="Upper threshold for Canny edge detection (fewer edges if higher)">
-          Edge Threshold 2: <input type="range" id="threshold2" min="0" max="255" value="150" oninput="autoSlice()">
-        </label>
-        <label title="Minimum area (in pixels) for a contour to be considered a frame">
-          Min Contour Area: <input type="range" id="minContourArea" min="100" max="5000" value="100" oninput="autoSlice()">
-        </label>
-        <label title="Merge nearby contours into a single frame">
-          <input type="checkbox" id="mergeContours" checked onchange="autoSlice()"> Merge Nearby Contours
-        </label>
-        <label title="Distance (in pixels) for merging nearby contours">
-          Merge Distance: <input type="range" id="mergeDistance" min="0" max="50" value="10" oninput="autoSlice()">
-        </label>
-        <h3>Grid Fallback (if edge detection fails)</h3>
-        <label title="Number of rows for grid-based slicing">
-          Rows: <input type="number" id="rowsInput" min="1" value="1">
-        </label>
-        <label title="Number of columns for grid-based slicing">
-          Columns: <input type="number" id="colsInput" min="1" value="1">
-        </label>
-        <button onclick="sliceWithGrid()">Use Grid Slicing</button>
-        <button onclick="resetSettings()">Reset to Defaults</button>
+        <details open>
+          <summary>Edge Detection Settings</summary>
+          <div class="control-group">
+            <label title="Apply Gaussian blur to reduce noise before edge detection">
+              Blur Amount:
+              <input type="range" id="blurAmount" min="1" max="15" step="2" value="3" oninput="syncInput('blurAmount'); autoSlice()">
+              <input type="number" id="blurAmountNum" min="1" max="15" step="2" value="3" oninput="syncSlider('blurAmount'); autoSlice()">
+            </label>
+            <label title="Lower threshold for Canny edge detection (more edges if lower)">
+              Edge Threshold 1:
+              <input type="range" id="threshold1" min="0" max="255" value="50" oninput="syncInput('threshold1'); autoSlice()">
+              <input type="number" id="threshold1Num" min="0" max="255" value="50" oninput="syncSlider('threshold1'); autoSlice()">
+            </label>
+            <label title="Upper threshold for Canny edge detection (fewer edges if higher)">
+              Edge Threshold 2:
+              <input type="range" id="threshold2" min="0" max="255" value="150" oninput="syncInput('threshold2'); autoSlice()">
+              <input type="number" id="threshold2Num" min="0" max="255" value="150" oninput="syncSlider('threshold2'); autoSlice()">
+            </label>
+            <label title="Minimum area (in pixels) for a contour to be considered a frame">
+              Min Contour Area:
+              <input type="range" id="minContourArea" min="100" max="5000" value="100" oninput="syncInput('minContourArea'); autoSlice()">
+              <input type="number" id="minContourAreaNum" min="100" max="5000" value="100" oninput="syncSlider('minContourArea'); autoSlice()">
+            </label>
+            <label title="Merge nearby contours into a single frame">
+              <input type="checkbox" id="mergeContours" checked onchange="autoSlice()"> Merge Nearby Contours
+            </label>
+            <label title="Distance (in pixels) for merging nearby contours">
+              Merge Distance:
+              <input type="range" id="mergeDistance" min="0" max="50" value="10" oninput="syncInput('mergeDistance'); autoSlice()">
+              <input type="number" id="mergeDistanceNum" min="0" max="50" value="10" oninput="syncSlider('mergeDistance'); autoSlice()">
+            </label>
+            <button onclick="resetSettings()">Reset to Defaults</button>
+          </div>
+        </details>
+      </div>
+      <div class="refine-controls" id="refineControls">
+        <p>Click and drag the corners of the rectangles to adjust the detected frames.</p>
       </div>
       <div class="manual-controls" id="manualControls">
-        <label>Zoom: <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1" oninput="updateZoom()"></label>
-        <button onclick="undoLastSelection()">Undo Last Selection</button>
+        <div class="control-group">
+          <label title="Show grid overlay in manual mode">
+            <input type="checkbox" id="showGrid" checked onchange="drawCanvas()"> Show Grid
+          </label>
+          <label title="Snap selections to the grid guides">
+            <input type="checkbox" id="snapToGrid" checked> Snap to Grid
+          </label>
+          <label>Zoom: <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1" oninput="updateZoom()"></label>
+          <button onclick="undoLastSelection()">Undo Last Selection</button>
+        </div>
       </div>
     </div>
     <div class="status" id="status">Frames: 0</div>
@@ -213,6 +256,8 @@
     let isPanning = false;
     let lastPanX, lastPanY;
     let opencvReady = false;
+    let selectedCorner = null;
+    let selectedRectIndex = null;
     const canvas = document.getElementById('spriteCanvas');
     const ctx = canvas.getContext('2d');
     const edgeCanvas = document.getElementById('edgeCanvas');
@@ -239,9 +284,10 @@
     function toggleMode() {
       mode = document.querySelector('input[name="mode"]:checked').value;
       document.getElementById('autoControls').style.display = mode === 'auto' ? 'block' : 'none';
+      document.getElementById('refineControls').style.display = mode === 'refine' ? 'block' : 'none';
       document.getElementById('manualControls').style.display = mode === 'manual' ? 'block' : 'none';
       manualSelections = [];
-      frames = [];
+      if (mode !== 'auto') frames = [];
       zoom = 1;
       panX = 0;
       panY = 0;
@@ -271,22 +317,74 @@
           const suggestedCols = Math.max(1, Math.round(spriteImage.width / 32));
           document.getElementById('rowsInput').value = suggestedRows;
           document.getElementById('colsInput').value = suggestedCols;
+          defaultSettings.rows = suggestedRows;
+          defaultSettings.cols = suggestedCols;
+          // Adjust edge detection settings based on image properties
+          adjustEdgeDetectionSettings();
           drawCanvas();
           if (mode === 'auto' && opencvReady) autoSlice();
         };
       }
     });
 
+    function adjustEdgeDetectionSettings() {
+      if (!spriteImage) return;
+      // Basic heuristic: Larger images might need a larger min contour area
+      const imageArea = spriteImage.width * spriteImage.height;
+      const suggestedMinContourArea = Math.max(100, Math.round(imageArea * 0.001));
+      document.getElementById('minContourArea').value = suggestedMinContourArea;
+      document.getElementById('minContourAreaNum').value = suggestedMinContourArea;
+      defaultSettings.minContourArea = suggestedMinContourArea;
+      // Adjust thresholds based on image contrast (simplified)
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = spriteImage.width;
+      tempCanvas.height = spriteImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(spriteImage, 0, 0);
+      const src = cv.imread(tempCanvas);
+      const gray = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      const mean = cv.mean(gray);
+      const suggestedThreshold1 = Math.max(30, Math.min(100, Math.round(mean[0] * 0.5)));
+      const suggestedThreshold2 = Math.max(100, Math.min(200, Math.round(mean[0] * 1.5)));
+      document.getElementById('threshold1').value = suggestedThreshold1;
+      document.getElementById('threshold1Num').value = suggestedThreshold1;
+      document.getElementById('threshold2').value = suggestedThreshold2;
+      document.getElementById('threshold2Num').value = suggestedThreshold2;
+      defaultSettings.threshold1 = suggestedThreshold1;
+      defaultSettings.threshold2 = suggestedThreshold2;
+      src.delete();
+      gray.delete();
+    }
+
+    function syncInput(id) {
+      document.getElementById(`${id}Num`).value = document.getElementById(id).value;
+    }
+
+    function syncSlider(id) {
+      document.getElementById(id).value = document.getElementById(`${id}Num`).value;
+    }
+
     function resetSettings() {
       document.getElementById('blurAmount').value = defaultSettings.blurAmount;
+      document.getElementById('blurAmountNum').value = defaultSettings.blurAmount;
       document.getElementById('threshold1').value = defaultSettings.threshold1;
+      document.getElementById('threshold1Num').value = defaultSettings.threshold1;
       document.getElementById('threshold2').value = defaultSettings.threshold2;
+      document.getElementById('threshold2Num').value = defaultSettings.threshold2;
       document.getElementById('minContourArea').value = defaultSettings.minContourArea;
+      document.getElementById('minContourAreaNum').value = defaultSettings.minContourArea;
       document.getElementById('mergeContours').checked = defaultSettings.mergeContours;
       document.getElementById('mergeDistance').value = defaultSettings.mergeDistance;
+      document.getElementById('mergeDistanceNum').value = defaultSettings.mergeDistance;
       document.getElementById('rowsInput').value = defaultSettings.rows;
       document.getElementById('colsInput').value = defaultSettings.cols;
       if (spriteImage && mode === 'auto') autoSlice();
+    }
+
+    function updateGridSettings() {
+      if (spriteImage && mode === 'auto') autoSlice();
+      drawCanvas();
     }
 
     function autoSlice() {
@@ -325,15 +423,32 @@
       const hierarchy = new cv.Mat();
       cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-      // Process contours to find bounding rectangles
+      // Process contours to find bounding rectangles, constrained by grid
       let rects = [];
       const minContourArea = parseInt(document.getElementById('minContourArea').value);
+      const rows = parseInt(document.getElementById('rowsInput').value);
+      const cols = parseInt(document.getElementById('colsInput').value);
+      const cellWidth = spriteImage.width / cols;
+      const cellHeight = spriteImage.height / rows;
+
       for (let i = 0; i < contours.size(); i++) {
         const contour = contours.get(i);
         const area = cv.contourArea(contour);
         if (area >= minContourArea) {
           const rect = cv.boundingRect(contour);
-          rects.push(rect);
+          // Snap the rectangle to the nearest grid cell
+          const gridX = Math.round(rect.x / cellWidth) * cellWidth;
+          const gridY = Math.round(rect.y / cellHeight) * cellHeight;
+          const gridWidth = Math.round((rect.x + rect.width) / cellWidth) * cellWidth - gridX;
+          const gridHeight = Math.round((rect.y + rect.height) / cellHeight) * cellHeight - gridY;
+          if (gridWidth > 0 && gridHeight > 0) {
+            rects.push({
+              x: gridX,
+              y: gridY,
+              width: gridWidth,
+              height: gridHeight
+            });
+          }
         }
       }
 
@@ -410,7 +525,6 @@
             otherRect.y >= expandedRect.y &&
             otherRect.y + otherRect.height <= expandedRect.y + expandedRect.height
           ) {
-            // Merge the rectangles
             const minX = Math.min(currentRect.x, otherRect.x);
             const minY = Math.min(currentRect.y, otherRect.y);
             const maxX = Math.max(currentRect.x + currentRect.width, otherRect.x + otherRect.width);
@@ -489,7 +603,34 @@
         ctx.restore();
       }
 
-      if (mode === 'auto') {
+      // Draw grid if enabled
+      const rows = parseInt(document.getElementById('rowsInput').value);
+      const cols = parseInt(document.getElementById('colsInput').value);
+      const cellWidth = canvas.width / cols;
+      const cellHeight = canvas.height / rows;
+
+      if ((mode === 'manual' && document.getElementById('showGrid').checked) || mode === 'auto' || mode === 'refine') {
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+        ctx.lineWidth = 1 / zoom;
+        for (let row = 1; row < rows; row++) {
+          ctx.beginPath();
+          ctx.moveTo(0, row * cellHeight);
+          ctx.lineTo(canvas.width, row * cellHeight);
+          ctx.stroke();
+        }
+        for (let col = 1; col < cols; col++) {
+          ctx.beginPath();
+          ctx.moveTo(col * cellWidth, 0);
+          ctx.lineTo(col * cellWidth, canvas.height);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (mode === 'auto' || mode === 'refine') {
         // Draw auto-detected selections
         ctx.save();
         ctx.translate(panX, panY);
@@ -501,9 +642,18 @@
           ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
           ctx.font = `${12 / zoom}px monospace`;
           ctx.fillText(`Frame ${index + 1}`, selection.x + 5 / zoom, selection.y + 15 / zoom);
+          if (mode === 'refine') {
+            // Draw corner handles
+            const handleSize = 8 / zoom;
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.fillRect(selection.x - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-left
+            ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-right
+            ctx.fillRect(selection.x - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-left
+            ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-right
+          }
         });
         ctx.restore();
-      } else {
+      } else if (mode === 'manual') {
         // Draw manual selections with bounding boxes and labels
         ctx.save();
         ctx.translate(panX, panY);
@@ -521,7 +671,7 @@
     }
 
     canvas.addEventListener('mousedown', (e) => {
-      if (mode !== 'manual' || !spriteImage) return;
+      if (!spriteImage) return;
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
       const y = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
@@ -530,9 +680,45 @@
         isPanning = true;
         lastPanX = e.clientX;
         lastPanY = e.clientY;
-      } else {
+        return;
+      }
+
+      if (mode === 'refine') {
+        // Check if a corner handle is clicked
+        const handleSize = 8 / zoom;
+        for (let i = 0; i < autoSelections.length; i++) {
+          const sel = autoSelections[i];
+          const corners = [
+            { x: sel.x, y: sel.y, corner: 'top-left' },
+            { x: sel.x + sel.width, y: sel.y, corner: 'top-right' },
+            { x: sel.x, y: sel.y + sel.height, corner: 'bottom-left' },
+            { x: sel.x + sel.width, y: sel.y + sel.height, corner: 'bottom-right' }
+          ];
+          for (const corner of corners) {
+            if (
+              x >= corner.x - handleSize / 2 &&
+              x <= corner.x + handleSize / 2 &&
+              y >= corner.y - handleSize / 2 &&
+              y <= corner.y + handleSize / 2
+            ) {
+              selectedCorner = corner.corner;
+              selectedRectIndex = i;
+              isDragging = true;
+              return;
+            }
+          }
+        }
+      } else if (mode === 'manual') {
         startX = x;
         startY = y;
+        if (document.getElementById('snapToGrid').checked) {
+          const rows = parseInt(document.getElementById('rowsInput').value);
+          const cols = parseInt(document.getElementById('colsInput').value);
+          const cellWidth = spriteImage.width / cols;
+          const cellHeight = spriteImage.height / rows;
+          startX = Math.round(startX / cellWidth) * cellWidth;
+          startY = Math.round(startY / cellHeight) * cellHeight;
+        }
         isDragging = true;
       }
     });
@@ -550,14 +736,69 @@
         lastPanX = e.clientX;
         lastPanY = e.clientY;
         drawCanvas();
+        return;
+      }
+
+      if (isDragging && mode === 'refine' && selectedRectIndex !== null) {
+        const sel = autoSelections[selectedRectIndex];
+        let newX = sel.x;
+        let newY = sel.y;
+        let newWidth = sel.width;
+        let newHeight = sel.height;
+
+        const rows = parseInt(document.getElementById('rowsInput').value);
+        const cols = parseInt(document.getElementById('colsInput').value);
+        const cellWidth = spriteImage.width / cols;
+        const cellHeight = spriteImage.height / rows;
+        let snappedX = Math.round(x / cellWidth) * cellWidth;
+        let snappedY = Math.round(y / cellHeight) * cellHeight;
+
+        if (selectedCorner === 'top-left') {
+          newWidth = sel.x + sel.width - snappedX;
+          newHeight = sel.y + sel.height - snappedY;
+          newX = snappedX;
+          newY = snappedY;
+        } else if (selectedCorner === 'top-right') {
+          newWidth = snappedX - sel.x;
+          newHeight = sel.y + sel.height - snappedY;
+          newY = snappedY;
+        } else if (selectedCorner === 'bottom-left') {
+          newWidth = sel.x + sel.width - snappedX;
+          newHeight = snappedY - sel.y;
+          newX = snappedX;
+        } else if (selectedCorner === 'bottom-right') {
+          newWidth = snappedX - sel.x;
+          newHeight = snappedY - sel.y;
+        }
+
+        if (newWidth > 5 && newHeight > 5) {
+          autoSelections[selectedRectIndex] = {
+            x: newX,
+            y: newY,
+            width: newWidth,
+            height: newHeight
+          };
+          updateFrame(selectedRectIndex);
+        }
+        drawCanvas();
       } else if (isDragging && mode === 'manual') {
+        let endX = x;
+        let endY = y;
+        if (document.getElementById('snapToGrid').checked) {
+          const rows = parseInt(document.getElementById('rowsInput').value);
+          const cols = parseInt(document.getElementById('colsInput').value);
+          const cellWidth = spriteImage.width / cols;
+          const cellHeight = spriteImage.height / rows;
+          endX = Math.round(endX / cellWidth) * cellWidth;
+          endY = Math.round(endY / cellHeight) * cellHeight;
+        }
         drawCanvas();
         ctx.save();
         ctx.translate(panX, panY);
         ctx.scale(zoom, zoom);
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
         ctx.lineWidth = 2 / zoom;
-        ctx.strokeRect(startX, startY, x - startX, y - startY);
+        ctx.strokeRect(startX, startY, endX - startX, endY - startY);
         ctx.restore();
       }
     });
@@ -567,14 +808,32 @@
         isPanning = false;
         return;
       }
+
+      if (isDragging && mode === 'refine') {
+        isDragging = false;
+        selectedCorner = null;
+        selectedRectIndex = null;
+        drawCanvas();
+        return;
+      }
+
       if (!isDragging || mode !== 'manual') return;
       const rect = canvas.getBoundingClientRect();
-      const endX = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
-      const endY = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+      let endX = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
+      let endY = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+
+      if (document.getElementById('snapToGrid').checked) {
+        const rows = parseInt(document.getElementById('rowsInput').value);
+        const cols = parseInt(document.getElementById('colsInput').value);
+        const cellWidth = spriteImage.width / cols;
+        const cellHeight = spriteImage.height / rows;
+        endX = Math.round(endX / cellWidth) * cellWidth;
+        endY = Math.round(endY / cellHeight) * cellHeight;
+      }
 
       const width = Math.abs(endX - startX);
       const height = Math.abs(endY - startY);
-      if (width > 5 && height > 5) { // Minimum size to avoid accidental clicks
+      if (width > 5 && height > 5) {
         const selection = {
           x: Math.min(startX, endX),
           y: Math.min(startY, endY),
@@ -613,6 +872,27 @@
       document.getElementById('zoomSlider').value = zoom;
       drawCanvas();
     });
+
+    function updateFrame(index) {
+      const rect = autoSelections[index];
+      const frameCanvas = document.createElement('canvas');
+      const frameCtx = frameCanvas.getContext('2d');
+      frameCanvas.width = rect.width;
+      frameCanvas.height = rect.height;
+      frameCtx.drawImage(
+        spriteImage,
+        rect.x,
+        rect.y,
+        rect.width,
+        rect.height,
+        0,
+        0,
+        rect.width,
+        rect.height
+      );
+      frames[index] = frameCanvas.toDataURL('image/png');
+      updatePreview();
+    }
 
     function undoLastSelection() {
       if (mode !== 'manual' || manualSelections.length === 0) return;
