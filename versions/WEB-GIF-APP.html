@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Image Sequence to GIF</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #000;
+      color: #0F0;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      display: inline-block;
+      text-align: left;
+    }
+    pre {
+      color: #FF00FF;
+      font-size: 16px;
+      line-height: 1;
+    }
+    input, button {
+      font-family: 'Courier New', monospace;
+      background-color: #222;
+      color: #0F0;
+      border: 1px solid #0F0;
+      padding: 5px;
+      margin: 5px 0;
+    }
+    #progressContainer {
+      width: 100%;
+      background-color: #333;
+      margin: 10px 0;
+      display: none;
+    }
+    #progressBar {
+      height: 20px;
+      background-color: #0F0;
+      width: 0%;
+    }
+    #preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .preview-img {
+      object-fit: cover;
+      border: 1px solid #0F0;
+    }
+    .frame-number {
+      margin-top: 5px;
+      font-size: 14px;
+      color: #FF00FF;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <pre>
+░▒▓███████▓▒░       ░▒▓█▓▒░       ░▒▓██████▓▒░                                                          
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░                                                         
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                                                                
+░▒▓███████▓▒░       ░▒▓█▓▒░      ░▒▓█▓▒▒▓███▓▒░                                                         
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░                                                         
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░                                                         
+░▒▓███████▓▒░       ░▒▓█▓▒░       ░▒▓██████▓▒░                                                          
+                                                                                                        
+                                                                                                        
+                                     ░▒▓██████▓▒░       ░▒▓█▓▒░      ░▒▓████████▓▒░       ░▒▓███████▓▒░ 
+                                    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓█▓▒░        
+                                    ░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓█▓▒░        
+                                    ░▒▓█▓▒▒▓███▓▒░      ░▒▓█▓▒░      ░▒▓██████▓▒░         ░▒▓██████▓▒░  
+                                    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░ 
+                                    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░ 
+                                     ░▒▓██████▓▒░       ░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓███████▓▒░  
+                                                                                                     
+    </pre>
+    <h2>Image Sequence to GIF</h2>
+    <input type="file" id="imageInput" multiple accept="image/*">
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
+    <label for="cellWidth">Cell Width (px):</label>
+    <input type="number" id="cellWidth" value="100">
+    <br>
+    <label for="cellHeight">Cell Height (px):</label>
+    <input type="number" id="cellHeight" value="100">
+    <br>
+    <label for="frameRate">Frame Rate (fps):</label>
+    <input type="number" id="frameRate" value="2" min="1">
+    <br>
+    <button onclick="createGIF()">Create GIF</button>
+    <div id="preview"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const preview = document.getElementById('preview');
+    const cellWidthInput = document.getElementById('cellWidth');
+    const cellHeightInput = document.getElementById('cellHeight');
+    const frameRateInput = document.getElementById('frameRate');
+    let images = [];
+
+    imageInput.addEventListener('change', function() {
+      images = [];
+      preview.innerHTML = '';
+      const files = Array.from(this.files);
+      const totalFiles = files.length;
+      let loadedFiles = 0;
+
+      if (totalFiles > 0) {
+        progressContainer.style.display = 'block';
+      }
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            images[index] = img;
+            loadedFiles++;
+            progressBar.style.width = (loadedFiles / totalFiles) * 100 + '%';
+            if (loadedFiles === totalFiles) {
+              displayPreviews();
+              progressContainer.style.display = 'none';
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function displayPreviews() {
+      images.forEach((img, index) => {
+        const previewItem = document.createElement('div');
+        previewItem.classList.add('preview-item');
+
+        const previewImg = document.createElement('img');
+        previewImg.src = img.src;
+        previewImg

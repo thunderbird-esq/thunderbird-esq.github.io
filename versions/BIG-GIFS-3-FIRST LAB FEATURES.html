@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Image Sequence to GIF</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #000;
+      color: #0F0;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      font-size: 10px;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    .container {
+      display: inline-block;
+      text-align: center;
+    }
+    pre {
+      color: #FF00FF;
+      font-size: 16px;
+      line-height: 1;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input, button {
+      font-family: 'Courier New', monospace;
+      background-color: #222;
+      color: #0F0;
+      border: 1px solid #0F0;
+      padding: 5px;
+      margin: 10px 0;
+      font-size: 10px;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    #imageInput {
+      text-transform: uppercase;
+    }
+    #progressContainer {
+      width: 100%;
+      background-color: #333;
+      margin: 10px 0;
+      display: none;
+    }
+    #progressBar {
+      height: 20px;
+      background-color: #0F0;
+      width: 0%;
+    }
+    #preview {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      justify-content: center;
+      gap: 10px;
+      margin: 40px 0;
+    }
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 5px;
+    }
+    .preview-img {
+      object-fit: cover;
+      border: 1px solid #0F0;
+    }
+    .frame-number {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #FF00FF;
+    }
+    .delete-button {
+      background-color: #222;
+      color: #F00;
+      border: 1px solid #F00;
+      padding: 2px 5px;
+      margin-top: 5px;
+      cursor: pointer;
+    }
+    #previewContainer {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 40px;
+    }
+    #gifPreview {
+      display: block;
+      max-width: 100%;
+      margin-bottom: 20px;
+    }
+    #playPauseButton {
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <pre>
+  ____  _____ _____     ____ _____ 
+ | __ )| ____|_   _|   / ___| ____|
+ |  _ \|  _|   | |    | |  _|  _|  
+ | |_) | |___  | |    | |_| | |___ 
+ |____/|_____| |_|     \____|_____|
+    </pre>
+
+    <input type="file" id="imageInput" multiple directory webkitdirectory accept="image/*">
+
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
+
+    <br>
+    <label for="cellWidth">width:</label>
+    <input type="number" id="cellWidth" value="100">
+    <label for="cellHeight">height:</label>
+    <input type="number" id="cellHeight" value="100">
+
+    <br>
+    <label for="frameRate">fps:</label>
+    <input type="number" id="frameRate" value="2" min="1">
+
+    <br>
+    <button onclick="createGIF()">create gif</button>
+
+    <div id="preview"></div>
+
+    <div id="previewContainer">
+      <img id="gifPreview" src="" alt="Generated GIF">
+      <button id="playPauseButton" onclick="togglePlayPause()">play</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const preview = document.getElementById('preview');
+    const cellWidthInput = document.getElementById('cellWidth');
+    const cellHeightInput = document.getElementById('cellHeight');
+    const frameRateInput = document.getElementById('frameRate');
+    const gifPreview = document.getElementById('gifPreview');
+    const playPauseButton = document.getElementById('playPauseButton');
+    let images = [];
+    let gifBlob = null;
+    let isPlaying = false;
+    let gifUrl = '';
+
+    imageInput.addEventListener('change', function () {
+      images = [];
+      preview.innerHTML = '';
+      const files = Array.from(this.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      const totalFiles = files.length;
+      let loadedFiles = 0;
+
+      if (totalFiles > 0) {
+        progressContainer.style.display = 'block';
+      }
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            images[index] = img;
+            if (index === 0) {
+              cellWidthInput.value = img.width;
+              cellHeightInput.value = img.height;
+            }
+            loadedFiles++;
+            progressBar.style.width = `${(loadedFiles / totalFiles) * 100}%`;
+            if (loadedFiles === totalFiles) {
+              displayPreviews();
+              progressContainer.style.display = 'none';
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function displayPreviews() {
+      preview.innerHTML = '';
+      images.forEach((img, index) => {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const cellWidth = parseInt(cellWidthInput.value, 10);
+        const cellHeight = parseInt(cellHeightInput.value, 10);
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+
+        ctx.drawImage(img, 0, 0, cellWidth, cellHeight);
+        canvas.className = 'preview-img';
+
+        const frameNumber = document.createElement('div');
+        frameNumber.className = 'frame-number';
+        frameNumber.textContent = `Frame ${index + 1}`;
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'delete';
+        deleteButton.className = 'delete-button';
+        deleteButton.onclick = function() {
+          deleteFrame(index);
+        };
+
+        previewItem.appendChild(canvas);
+        previewItem.appendChild(frameNumber);
+        previewItem.appendChild(deleteButton);
+        preview.appendChild(previewItem);
+      });
+    }
+
+    function deleteFrame(index) {
+      images.splice(index, 1);
+      displayPreviews();
+    }
+
+    function createGIF() {
+      if (images.length === 0) {
+        alert('Please select images first.');
+        return;
+      }
+
+      const cellWidth = parseInt(cellWidthInput.value, 10);
+      const cellHeight = parseInt(cellHeightInput.value, 10);
+      const frameRate = parseInt(frameRateInput.value, 10);
+      const delay = 1000 / frameRate;
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: cellWidth,
+        height: cellHeight,
+        repeat: 0
+      });
+
+      images.forEach((img) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+        ctx.drawImage(img, 0, 0, cellWidth, cellHeight);
+        gif.addFrame(canvas, { delay: delay, copy: true });
+      });
+
+      gif.on('finished', function (blob) {
+        gifBlob = blob;
+        gifUrl = URL.createObjectURL(blob);
+        gifPreview.src = gifUrl;
+        gifPreview.style.display = 'block';
+        playPauseButton.textContent = 'pause';
+        isPlaying = true;
+      });
+
+      gif.render();
+    }
+
+    function togglePlayPause() {
+      if (!gifUrl) return;
+      if (isPlaying) {
+        gifPreview.src = '';
+        playPauseButton.textContent = 'play';
+      } else {
+        gifPreview.src = gifUrl;
+        playPauseButton.textContent = 'pause';
+      }
+      isPlaying = !isPlaying;
+    }
+  </script>
+</body>
+</html>

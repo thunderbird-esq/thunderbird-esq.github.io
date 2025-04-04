@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS Sprite Slicer</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #eee; margin: 0; text-align: center; }
+    canvas { border: 1px solid #555; margin-top: 1em; cursor: crosshair; }
+    #controls { margin-top: 10px; }
+    .frame-preview { display: inline-block; margin: 4px; border: 1px solid #444; }
+    .frame-preview img { width: 64px; height: 64px; image-rendering: pixelated; }
+    #preview-container { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>BIG GIFS LAB — Sprite Slicer</h1>
+  <input type="file" id="sheetInput" accept="image/*">
+  <div id="controls">
+    <label>Columns: <input type="number" id="cols" min="1" value="4"></label>
+    <label>Rows: <input type="number" id="rows" min="1" value="4"></label>
+    <button onclick="sliceGrid()">Slice Grid</button>
+    <button onclick="toggleGrid()">Toggle Grid</button>
+    <button onclick="zoom(1.2)">Zoom In</button>
+    <button onclick="zoom(0.8)">Zoom Out</button>
+    <button onclick="resetZoom()">Reset View</button>
+    <button onclick="clearSlices()">Clear</button>
+    <button onclick="simulateExport()">Export</button>
+    <p id="frameStatus"></p>
+  </div>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <div id="preview-container"></div>
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let img = new Image();
+    let zoomLevel = 1;
+    let showGrid = true;
+    let slices = [];
+    let imageLoaded = false;
+
+    const previews = document.getElementById("preview-container");
+    const frameStatus = document.getElementById("frameStatus");
+
+    document.getElementById("sheetInput").onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          draw();
+          imageLoaded = true;
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    function draw() {
+      ctx.setTransform(zoomLevel, 0, 0, zoomLevel, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      if (showGrid) drawGrid();
+      drawSelections();
+    }
+
+    function drawGrid() {
+      const cols = parseInt(document.getElementById("cols").value);
+      const rows = parseInt(document.getElementById("rows").value);
+      const w = canvas.width / cols;
+      const h = canvas.height / rows;
+      ctx.strokeStyle = "rgba(255,255,255,0.3)";
+      for (let i = 1; i < cols; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * w, 0);
+        ctx.lineTo(i * w, canvas.height);
+        ctx.stroke();
+      }
+      for (let j = 1; j < rows; j++) {
+        ctx.beginPath();
+        ctx.moveTo(0, j * h);
+        ctx.lineTo(canvas.width, j * h);
+        ctx.stroke();
+      }
+    }
+
+    function toggleGrid() {
+      showGrid = !showGrid;
+      draw();
+    }
+
+    function zoom(factor) {
+      zoomLevel *= factor;
+      draw();
+    }
+
+    function resetZoom() {
+      zoomLevel = 1;
+      draw();
+    }
+
+    canvas.addEventListener("mousedown", e => {
+      if (!imageLoaded) return;
+      const rect = canvas.getBoundingClientRect();
+      const startX = (e.clientX - rect.left) / zoomLevel;
+      const startY = (e.clientY - rect.top) / zoomLevel;
+
+      function onMouseUp(ev) {
+        const endX = (ev.clientX - rect.left) / zoomLevel;
+        const endY = (ev.clientY - rect.top) / zoomLevel;
+        const x = Math.min(startX, endX);
+        const y = Math.min(startY, endY);
+        const w = Math.abs(startX - endX);
+        const h = Math.abs(startY - endY);
+        if (w > 5 && h > 5) {
+          slices.push({ x, y, w, h });
+          updatePreview();
+        }
+        canvas.removeEventListener("mouseup", onMouseUp);
+        draw();
+      }
+
+      canvas.addEventListener("mouseup", onMouseUp);
+    });
+
+    function drawSelections() {
+      ctx.strokeStyle = "rgba(0,255,0,0.5)";
+      slices.forEach(s => {
+        ctx.strokeRect(s.x, s.y, s.w, s.h);
+      });
+    }
+
+    function sliceGrid() {
+      slices = [];
+      const cols = parseInt(document.getElementById("cols").value);
+      const rows = parseInt(document.getElementById("rows").value);
+      const w = canvas.width / cols;
+      const h = canvas.height / rows;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          slices.push({ x: x * w, y: y * h, w, h });
+        }
+      }
+      updatePreview();
+      draw();
+    }
+
+    function updatePreview() {
+      previews.innerHTML = "";
+      slices.forEach((s, i) => {
+        const c = document.createElement("canvas");
+        c.width = s.w;
+        c.height = s.h;
+        const context = c.getContext("2d");
+        context.drawImage(img, s.x, s.y, s.w, s.h, 0, 0, s.w, s.h);
+        const wrapper = document.createElement("div");
+        wrapper.className = "frame-preview";
+        wrapper.appendChild(c);
+        previews.appendChild(wrapper);
+      });
+      frameStatus.textContent = `${slices.length} frame(s) selected.`;
+    }
+
+    function clearSlices() {
+      slices = [];
+      previews.innerHTML = "";
+      frameStatus.textContent = "";
+      draw();
+    }
+
+    function simulateExport() {
+      alert(`Simulated export of ${slices.length} frames to BIG GIFS LAB.`);
+    }
+  </script>
+</body>
+</html>

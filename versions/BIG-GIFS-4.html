@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Retro Filter Expansion</title>
+  <style>
+    body {
+      background: #000;
+      color: #0F0;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+    }
+    .preview-item {
+      display: inline-block;
+      margin: 10px;
+      border: 1px dashed #0F0;
+    }
+    .preview-img {
+      display: block;
+    }
+    .frame-number {
+      color: #FF00FF;
+    }
+  </style>
+</head>
+<body>
+  <h1>BIG GIFS</h1>
+  <input type="file" id="imageInput" multiple accept="image/*"><br>
+  <label>Width: <input id="cellWidth" type="number" name="width"></label>
+  <label>Height: <input id="cellHeight" type="number" name="height"></label>
+  <label>FPS: <input id="frameRate" type="number" name="fps" value="2" min="1"></label>
+  <label>Transparency: <input type="checkbox" id="transparencyToggle"></label><br>
+  <button onclick="createGIF()">create gif</button>
+  <button onclick="downloadGIF()" id="downloadButton" style="display:none;">download gif</button>
+  <div id="preview"></div>
+  <img id="gifPreview" style="margin-top: 20px;">
+  <div id="frameCounter"></div>
+  <script>
+    let retroPalettes = {};
+    fetch('retro_palettes.json')
+      .then(r => r.json())
+      .then(p => retroPalettes = p);
+
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const gifPreview = document.getElementById('gifPreview');
+    const downloadButton = document.getElementById('downloadButton');
+    const cellWidthInput = document.getElementById('cellWidth');
+    const cellHeightInput = document.getElementById('cellHeight');
+    const frameRateInput = document.getElementById('frameRate');
+    const transparencyToggle = document.getElementById('transparencyToggle');
+
+    let images = [];
+
+    imageInput.addEventListener('change', function () {
+      images = [];
+      preview.innerHTML = '';
+      const files = Array.from(this.files);
+      let loaded = 0;
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            images.push({ img, delay: 100, filter: 'none' });
+            if (index === 0) {
+              cellWidthInput.value = img.width;
+              cellHeightInput.value = img.height;
+            }
+            loaded++;
+            if (loaded === files.length) renderPreviews();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function renderPreviews() {
+      preview.innerHTML = '';
+      images.forEach((frame, index) => {
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const w = parseInt(cellWidthInput.value);
+        const h = parseInt(cellHeightInput.value);
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(frame.img, 0, 0, w, h);
+
+        applyFilterToContext(ctx, frame.filter, w, h);
+
+        canvas.className = 'preview-img';
+        const label = document.createElement('div');
+        label.className = 'frame-number';
+        label.textContent = 'Frame ' + (index + 1);
+
+        const filter = document.createElement('select');
+        ['none', 'grayscale', 'invert', 'sepia', 'brighten', 'contrast', 'gameboy', 'cga', 'pico8', 'nes'].forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          if (opt === frame.filter) option.selected = true;
+          filter.appendChild(option);
+        });
+        filter.onchange = e => {
+          frame.filter = e.target.value;
+          renderPreviews();
+        };
+
+        div.append(canvas, label, filter);
+        preview.appendChild(div);
+      });
+    }
+
+    function getClosestColor(r, g, b, palette) {
+      let closest = palette[0];
+      let closestDistance = Infinity;
+      palette.forEach(hex => {
+        const pr = parseInt(hex.substr(1, 2), 16);
+        const pg = parseInt(hex.substr(3, 2), 16);
+        const pb = parseInt(hex.substr(5, 2), 16);
+        const dist = Math.sqrt((r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2);
+        if (dist < closestDistance) {
+          closestDistance = dist;
+          closest = hex;
+        }
+      });
+      return closest;
+    }
+
+    function applyFilterToContext(ctx, filter, w, h) {
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i], g = data[i+1], b = data[i+2];
+        if (filter === 'grayscale') {
+          const avg = (r + g + b) / 3;
+          r = g = b = avg;
+        } else if (filter === 'invert') {
+          r = 255 - r;
+          g = 255 - g;
+          b = 255 - b;
+        } else if (filter === 'sepia') {
+          r = 0.393*r + 0.769*g + 0.189*b;
+          g = 0.349*r + 0.686*g + 0.168*b;
+          b = 0.272*r + 0.534*g + 0.131*b;
+        } else if (['gameboy','cga','pico8','nes'].includes(filter) && retroPalettes[filter]) {
+          const hex = getClosestColor(r, g, b, retroPalettes[filter]);
+          r = parseInt(hex.substr(1, 2), 16);
+          g = parseInt(hex.substr(3, 2), 16);
+          b = parseInt(hex.substr(5, 2), 16);
+        }
+        data[i] = r;
+        data[i+1] = g;
+        data[i+2] = b;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function createGIF() {
+      const cellWidth = parseInt(cellWidthInput.value);
+      const cellHeight = parseInt(cellHeightInput.value);
+      const useTransparency = transparencyToggle.checked;
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: cellWidth,
+        height: cellHeight,
+        transparent: useTransparency ? 0x000000 : null,
+        repeat: 0
+      });
+
+      images.forEach(frame => {
+        const canvas = document.createElement('canvas');
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(frame.img, 0, 0, cellWidth, cellHeight);
+        applyFilterToContext(ctx, frame.filter, cellWidth, cellHeight);
+        gif.addFrame(canvas, { delay: frame.delay });
+      });
+
+      gif.on('finished', function(blob) {
+        const url = URL.createObjectURL(blob);
+        gifPreview.src = url;
+        downloadButton.href = url;
+        downloadButton.style.display = 'inline-block';
+      });
+
+      gif.render();
+    }
+
+    function downloadGIF() {
+      const a = document.createElement('a');
+      a.href = gifPreview.src;
+      a.download = 'animated.gif';
+      a.click();
+    }
+  </script>
+  <script src="gif.js"></script>
+  <script src="gif.worker.js"></script>
+</body>
+</html>

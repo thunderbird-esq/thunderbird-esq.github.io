@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BIG GIFS Sprite Slicer - Fixed</title>
+  <style>
+    body { font-family: monospace; background: #222; color: #ccc; text-align: center; }
+    canvas { border: 1px solid #444; background: #111; cursor: crosshair; }
+    .controls { margin: 1em; }
+    .controls input, .controls button { margin: 0.5em; }
+  </style>
+</head>
+<body>
+  <h2>BIG GIFS LAB - Sprite Slicer</h2>
+  <div class="controls">
+    <input type="file" id="spriteSheetInput" accept="image/*" />
+    <br/>
+    <button onclick="toggleMode()">Toggle Mode (Manual/Grid)</button>
+    <button onclick="toggleOverlay()">Toggle Grid Overlay</button>
+    <button onclick="zoomIn()">Zoom In</button>
+    <button onclick="zoomOut()">Zoom Out</button>
+    <button onclick="resetView()">Reset View</button>
+    <br/>
+    Rows: <input type="number" id="rowsInput" value="1" min="1" />
+    Columns: <input type="number" id="colsInput" value="1" min="1" />
+    <button onclick="applyGrid()">Slice Grid</button>
+    <br/>
+    <button onclick="exportFrames()">Export Frames</button>
+  </div>
+  <canvas id="sheetCanvas" width="640" height="480"></canvas>
+  <p id="frameCount">Frames: 0</p>
+  <script>
+    const canvas = document.getElementById('sheetCanvas');
+    const ctx = canvas.getContext('2d');
+    const spriteSheetInput = document.getElementById('spriteSheetInput');
+    const rowsInput = document.getElementById('rowsInput');
+    const colsInput = document.getElementById('colsInput');
+    const frameCountDisplay = document.getElementById('frameCount');
+
+    let image = new Image();
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let dragStart = {};
+    let frames = [];
+    let manualRects = [];
+    let showOverlay = true;
+    let manualMode = true;
+
+    spriteSheetInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          image.onload = function () {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            resetView();
+            draw();
+          };
+          image.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    canvas.addEventListener('mousedown', e => {
+      if (!manualMode) return;
+      const rect = canvas.getBoundingClientRect();
+      dragStart.x = (e.clientX - rect.left) / scale - offsetX;
+      dragStart.y = (e.clientY - rect.top) / scale - offsetY;
+      isDragging = true;
+    });
+
+    canvas.addEventListener('mouseup', e => {
+      if (!isDragging || !manualMode) return;
+      isDragging = false;
+      const rect = canvas.getBoundingClientRect();
+      const endX = (e.clientX - rect.left) / scale - offsetX;
+      const endY = (e.clientY - rect.top) / scale - offsetY;
+      const x = Math.min(dragStart.x, endX);
+      const y = Math.min(dragStart.y, endY);
+      const w = Math.abs(dragStart.x - endX);
+      const h = Math.abs(dragStart.y - endY);
+      if (w > 1 && h > 1) {
+        manualRects.push({ x, y, width: w, height: h });
+        draw();
+      }
+    });
+
+    function draw() {
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, offsetX, offsetY);
+      if (showOverlay) drawGrid();
+      manualRects.forEach((r, i) => {
+        ctx.strokeStyle = 'rgba(0,255,0,0.8)';
+        ctx.lineWidth = 1 / scale;
+        ctx.strokeRect(r.x + offsetX, r.y + offsetY, r.width, r.height);
+      });
+    }
+
+    function drawGrid() {
+      const rows = parseInt(rowsInput.value);
+      const cols = parseInt(colsInput.value);
+      if (!rows || !cols) return;
+      const cellW = canvas.width / cols;
+      const cellH = canvas.height / rows;
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1 / scale;
+      for (let i = 1; i < cols; i++) {
+        const x = i * cellW;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let j = 1; j < rows; j++) {
+        const y = j * cellH;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function toggleOverlay() {
+      showOverlay = !showOverlay;
+      draw();
+    }
+
+    function toggleMode() {
+      manualMode = !manualMode;
+      draw();
+    }
+
+    function zoomIn() {
+      scale *= 1.2;
+      draw();
+    }
+
+    function zoomOut() {
+      scale /= 1.2;
+      draw();
+    }
+
+    function resetView() {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+      draw();
+    }
+
+    function applyGrid() {
+      manualRects = [];
+      const rows = parseInt(rowsInput.value);
+      const cols = parseInt(colsInput.value);
+      const cellW = canvas.width / cols;
+      const cellH = canvas.height / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          manualRects.push({
+            x: c * cellW,
+            y: r * cellH,
+            width: cellW,
+            height: cellH
+          });
+        }
+      }
+      draw();
+    }
+
+    function exportFrames() {
+      frameCountDisplay.textContent = `Frames: ${manualRects.length}`;
+      alert(`Simulated export of ${manualRects.length} frames.`);
+    }
+  </script>
+</body>
+</html>

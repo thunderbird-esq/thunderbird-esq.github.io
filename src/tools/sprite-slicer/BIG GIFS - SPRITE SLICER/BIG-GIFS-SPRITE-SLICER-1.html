@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Sprite Sheet Slicer</title>
+  <style>
+    body {
+      background: #000;
+      color: #0F0;
+      font-family: "Courier New", monospace;
+      text-align: center;
+    }
+    input, button {
+      font-family: "Courier New", monospace;
+      background: #222;
+      color: #0F0;
+      border: 1px solid #0F0;
+      margin: 5px;
+      padding: 5px;
+    }
+    canvas {
+      margin: 10px;
+      border: 1px solid #0F0;
+    }
+    .frame-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>BIG GIFS - Sprite Sheet Slicer</h1>
+  <input type="file" id="spriteSheetInput" accept="image/*"><br>
+  Frame Width: <input type="number" id="frameWidth" value="32">
+  Frame Height: <input type="number" id="frameHeight" value="32">
+  <button onclick="sliceSpriteSheet()">Slice Sprite Sheet</button>
+  <div class="frame-grid" id="frameGrid"></div>
+
+  <script>
+    let spriteSheetImg = new Image();
+    const spriteSheetInput = document.getElementById('spriteSheetInput');
+    const frameGrid = document.getElementById('frameGrid');
+
+    spriteSheetInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        spriteSheetImg.onload = () => console.log("Sprite sheet loaded.");
+        spriteSheetImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function sliceSpriteSheet() {
+      const frameW = parseInt(document.getElementById('frameWidth').value);
+      const frameH = parseInt(document.getElementById('frameHeight').value);
+      const cols = Math.floor(spriteSheetImg.width / frameW);
+      const rows = Math.floor(spriteSheetImg.height / frameH);
+
+      frameGrid.innerHTML = '';
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const canvas = document.createElement('canvas');
+          canvas.width = frameW;
+          canvas.height = frameH;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(
+            spriteSheetImg,
+            x * frameW, y * frameH, frameW, frameH,
+            0, 0, frameW, frameH
+          );
+          frameGrid.appendChild(canvas);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

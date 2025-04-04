@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Image Sequence to GIF</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #000;
+      color: #0F0;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      font-size: 10px;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    .container {
+      display: inline-block;
+      text-align: center;
+    }
+    pre {
+      color: #FF00FF;
+      font-size: 16px;
+      line-height: 1;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input, button, select {
+      font-family: 'Courier New', monospace;
+      background-color: #222;
+      color: #0F0;
+      border: 1px solid #0F0;
+      padding: 5px;
+      margin: 5px;
+      font-size: 10px;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    input[type="number"] {
+      width: 60px;
+    }
+    #imageInput {
+      text-transform: uppercase;
+    }
+    #preview {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      justify-content: center;
+      gap: 10px;
+      margin: 40px 0;
+    }
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 5px;
+      padding: 5px;
+      border: 1px dashed #0F0;
+      cursor: grab;
+    }
+    .preview-img {
+      object-fit: cover;
+      border: 1px solid #0F0;
+    }
+    .frame-number {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #FF00FF;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <pre>
+  ____  _____ _____     ____ _____ 
+ | __ )| ____|_   _|   / ___| ____|
+ |  _ \|  _|   | |    | |  _|  _|  
+ | |_) | |___  | |    | |_| | |___ 
+ |____/|_____| |_|     \____|_____|
+    </pre>
+    <input type="file" id="imageInput" multiple directory webkitdirectory accept="image/*">
+    <br>
+    <label for="cellWidth">width:</label>
+    <input type="number" id="cellWidth" value="100">
+    <label for="cellHeight">height:</label>
+    <input type="number" id="cellHeight" value="100">
+    <br>
+    <label for="frameRate">fps:</label>
+    <input type="number" id="frameRate" value="2" min="1">
+    <br>
+    <button onclick="createGIF()">create gif</button>
+    <div id="preview"></div>
+    <div id="gifContainer">
+      <img id="gifPreview" src="" alt="Generated GIF">
+      <div id="frameCounter">frame: 0 / 0</div>
+      <div id="seekControls">
+        <button onclick="seekFrame(-1)">&lt; prev</button>
+        <button onclick="seekFrame(1)">next &gt;</button>
+      </div>
+      <button id="playPauseButton" onclick="togglePlayPause()">play</button>
+      <br><br>
+      <button id="downloadButton" style="display:none;" onclick="downloadGIF()">download gif</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const cellWidthInput = document.getElementById('cellWidth');
+    const cellHeightInput = document.getElementById('cellHeight');
+    const frameRateInput = document.getElementById('frameRate');
+    const gifPreview = document.getElementById('gifPreview');
+    const downloadButton = document.getElementById('downloadButton');
+    const frameCounter = document.getElementById('frameCounter');
+    const playPauseButton = document.getElementById('playPauseButton');
+
+    let images = [];
+    let gifBlob = null;
+    let gifUrl = '';
+    let isPlaying = false;
+    let currentFrameIndex = 0;
+
+    imageInput.addEventListener('change', function () {
+      images = [];
+      preview.innerHTML = '';
+      const files = Array.from(this.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      let loaded = 0;
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            images.push({ img, delay: 100, filter: 'none' });
+            if (index === 0) {
+              cellWidthInput.value = img.width;
+              cellHeightInput.value = img.height;
+            }
+            loaded++;
+            if (loaded === files.length) renderPreviews();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function renderPreviews() {
+      preview.innerHTML = '';
+      images.forEach((frame, index) => {
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        item.setAttribute('draggable', 'true');
+        item.dataset.index = index;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = parseInt(cellWidthInput.value);
+        canvas.height = parseInt(cellHeightInput.value);
+        const ctx = canvas.getContext('2d');
+
+        applyFilterToContext(ctx, frame.img, frame.filter, canvas.width, canvas.height);
+
+        canvas.className = 'preview-img';
+
+        const label = document.createElement('div');
+        label.className = 'frame-number';
+        label.textContent = `Frame ${index + 1}`;
+
+        const delayInput = document.createElement('input');
+        delayInput.type = 'number';
+        delayInput.value = frame.delay;
+        delayInput.onchange = e => frame.delay = parseInt(e.target.value);
+
+        const filterSelect = document.createElement('select');
+        ['none', 'grayscale', 'invert'].forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          if (opt === frame.filter) option.selected = true;
+          filterSelect.appendChild(option);
+        });
+        filterSelect.onchange = e => {
+          frame.filter = e.target.value;
+          renderPreviews();
+        };
+
+        const duplicate = document.createElement('button');
+        duplicate.textContent = 'duplicate';
+        duplicate.onclick = () => {
+          images.splice(index + 1, 0, { ...frame });
+          renderPreviews();
+        };
+
+        const del = document.createElement('button');
+        del.textContent = 'delete';
+        del.onclick = () => {
+          images.splice(index, 1);
+          renderPreviews();
+        };
+
+        item.append(canvas, label, delayInput, filterSelect, duplicate, del);
+        preview.appendChild(item);
+      });
+    }
+
+    function applyFilterToContext(ctx, img, filter, width, height) {
+      ctx.drawImage(img, 0, 0, width, height);
+      if (filter === 'none') return;
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (filter === 'grayscale') {
+          const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+          data[i] = data[i+1] = data[i+2] = avg;
+        } else if (filter === 'invert') {
+          data[i] = 255 - data[i];
+          data[i+1] = 255 - data[i+1];
+          data[i+2] = 255 - data[i+2];
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function createGIF() {
+      const cellWidth = parseInt(cellWidthInput.value);
+      const cellHeight = parseInt(cellHeightInput.value);
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: cellWidth,
+        height: cellHeight,
+        repeat: 0
+      });
+
+      images.forEach(frame => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+        applyFilterToContext(ctx, frame.img, frame.filter, cellWidth, cellHeight);
+        gif.addFrame(canvas, { delay: frame.delay, copy: true });
+      });
+
+      gif.on('finished', function(blob) {
+        gifBlob = blob;
+        gifUrl = URL.createObjectURL(blob);
+        gifPreview.src = gifUrl;
+        downloadButton.style.display = 'inline-block';
+        isPlaying = true;
+        playPauseButton.textContent = 'pause';
+        updateFrameCounter();
+      });
+
+      gif.render();
+    }
+
+    function downloadGIF() {
+      if (!gifBlob) return;
+      const a = document.createElement('a');
+      a.href = gifUrl;
+      a.download = 'big-gif.gif';
+      a.click();
+    }
+
+    function updateFrameCounter() {
+      frameCounter.textContent = `frame: ${currentFrameIndex + 1} / ${images.length}`;
+    }
+
+    function togglePlayPause() {
+      if (!gifUrl) return;
+      if (isPlaying) {
+        gifPreview.src = '';
+        playPauseButton.textContent = 'play';
+      } else {
+        gifPreview.src = gifUrl;
+        playPauseButton.textContent = 'pause';
+      }
+      isPlaying = !isPlaying;
+    }
+
+    function seekFrame(dir) {
+      if (!images.length) return;
+      currentFrameIndex = Math.max(0, Math.min(images.length - 1, currentFrameIndex + dir));
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const w = parseInt(cellWidthInput.value);
+      const h = parseInt(cellHeightInput.value);
+      canvas.width = w;
+      canvas.height = h;
+      applyFilterToContext(ctx, images[currentFrameIndex].img, images[currentFrameIndex].filter, w, h);
+      gifPreview.src = canvas.toDataURL();
+      isPlaying = false;
+      playPauseButton.textContent = 'play';
+      updateFrameCounter();
+    }
+  </script>
+</body>
+</html>

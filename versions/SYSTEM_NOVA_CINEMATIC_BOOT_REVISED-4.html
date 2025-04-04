@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Nova Boot</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      color: #ccc;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow: hidden;
+    }
+
+    .start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 1000;
+    }
+
+    .start-screen button {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+      background: #000;
+      border: 2px solid #0f0;
+      color: #0f0;
+      cursor: pointer;
+    }
+
+    .boot-logo {
+      text-align: right;
+      padding-right: 60px;
+      margin-top: 80px;
+      display: none;
+    }
+
+    .boot-logo img {
+      image-rendering: pixelated;
+      width: 320px;
+      height: 400px;
+    }
+
+    .boot-text {
+      padding: 20px 40px;
+      white-space: pre-wrap;
+      line-height: 1.5em;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      display: none;
+      position: absolute;
+      top: 120px;
+      left: 40px;
+    }
+
+    .fsv-screen {
+      display: none;
+      background: linear-gradient(to bottom, #222, #000);
+      color: #6ff;
+      font-family: monospace;
+      padding: 40px;
+      height: 100vh;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .progress-bar {
+      width: 80%;
+      margin: 60px auto;
+      height: 24px;
+      background-color: #222;
+      border: 2px solid #6ff;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: repeating-linear-gradient(
+        -45deg,
+        #6ff,
+        #6ff 10px,
+        #222 10px,
+        #222 20px
+      );
+      transition: width 1s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+<div class="start-screen" id="startScreen">
+  <button onclick="startBoot()">Power On</button>
+</div>
+
+<div class="boot-logo" id="bootLogo">
+  <img src="A_pixelated_2D_digital_graphic_features_an_all-see.png" alt="System Nova Logo" />
+</div>
+
+<pre class="boot-text" id="bootText"></pre>
+
+<div class="fsv-screen" id="fsvScreen">
+  <h2>SYSTEM NOVA OS 1.0</h2>
+  <p>Launching full interface and memory shell...</p>
+  <div class="progress-bar">
+    <div class="progress-bar-inner" id="progressBar"></div>
+  </div>
+  <p style="font-size: 12px; color: #888;">Virtual geometry surface mounting</p>
+</div>
+
+<audio id="fanSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4bcb2ff927.mp3?filename=pc-fan-6076.mp3" loop></audio>
+<audio id="clicksSound" src="https://cdn.pixabay.com/download/audio/2023/06/09/audio_4b0ec94277.mp3?filename=floppy-disk-clicks-145194.mp3" loop></audio>
+<audio id="bootBeep" src="https://cdn.pixabay.com/download/audio/2021/09/13/audio_66a356a55f.mp3?filename=computer-startup-121790.mp3"></audio>
+
+<script>
+  const bootLines = [
+    "Running diagnostics...",
+    "Testing memory...",
+    "Booting from ROM BIOS...",
+    "Checking floppy disk drives...",
+    "Probing PCI buses...",
+    "Loading quantum cache...",
+    "Verifying hexadecimal transport matrix...",
+    "Reticulating splines...",
+    "Stabilizing voltage envelope...",
+    "Initializing operating system..."
+  ];
+
+  let i = 0;
+
+  function startBoot() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('bootLogo').style.display = 'block';
+    document.getElementById('bootText').style.display = 'block';
+
+    document.getElementById('fanSound').volume = 0.4;
+    document.getElementById('clicksSound').volume = 0.3;
+    document.getElementById('fanSound').play();
+    document.getElementById('clicksSound').play();
+    document.getElementById('bootBeep').play();
+
+    showNextLine();
+  }
+
+  function showNextLine() {
+    const bootText = document.getElementById('bootText');
+    if (i < bootLines.length) {
+      bootText.textContent += bootLines[i] + '\n';
+      bootText.style.opacity = 1;
+      i++;
+      setTimeout(showNextLine, 2000 + Math.random() * 1000); // 2s per line
+    } else {
+      setTimeout(() => {
+        document.getElementById('bootLogo').style.display = 'none';
+        bootText.style.display = 'none';
+        document.getElementById('fsvScreen').style.display = 'block';
+        simulateFSVLoading();
+      }, 3000);
+    }
+  }
+
+  function simulateFSVLoading() {
+    let progress = 0;
+    const bar = document.getElementById('progressBar');
+    const fan = document.getElementById('fanSound');
+    const clicks = document.getElementById('clicksSound');
+    const interval = setInterval(() => {
+      progress += Math.random() * 6;
+      if (progress >= 100) {
+        bar.style.width = "100%";
+        clearInterval(interval);
+        fan.pause();
+        clicks.pause();
+      } else {
+        bar.style.width = progress + "%";
+        fan.volume = 0.3 + Math.random() * 0.2;
+        clicks.volume = 0.2 + Math.random() * 0.1;
+      }
+    }, 1000);
+  }
+</script>
+
+</body>
+</html>

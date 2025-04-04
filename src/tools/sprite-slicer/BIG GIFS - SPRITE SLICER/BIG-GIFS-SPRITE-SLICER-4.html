@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Sprite Sheet Slicer</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #111;
+      color: #0f0;
+      padding: 20px;
+      text-align: center;
+    }
+    canvas {
+      background: #000;
+      border: 1px solid #0f0;
+      margin-top: 10px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .controls > div {
+      display: flex;
+      flex-direction: column;
+    }
+    button {
+      margin-top: 10px;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>BIG GIFS - Sprite Sheet Slicer</h1>
+  <input type="file" id="spriteSheetInput" accept="image/*">
+  <div class="controls">
+    <div><label>Frame Width: <input type="number" id="frameWidth" value="32"></label></div>
+    <div><label>Frame Height: <input type="number" id="frameHeight" value="32"></label></div>
+    <div><label>Margin X: <input type="number" id="marginX" value="0"></label></div>
+    <div><label>Margin Y: <input type="number" id="marginY" value="0"></label></div>
+    <div><label>Spacing X: <input type="number" id="spacingX" value="0"></label></div>
+    <div><label>Spacing Y: <input type="number" id="spacingY" value="0"></label></div>
+  </div>
+  <button onclick="extractFrames()">Extract Frames</button>
+  <div id="framePreview" style="margin-top:20px; display:flex; flex-wrap:wrap; justify-content:center; gap:5px;"></div>
+  <canvas id="previewCanvas"></canvas>
+
+  <script>
+    const input = document.getElementById('spriteSheetInput');
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const previewDiv = document.getElementById('framePreview');
+
+    const settings = ['frameWidth', 'frameHeight', 'marginX', 'marginY', 'spacingX', 'spacingY']
+      .reduce((acc, id) => {
+        acc[id] = document.getElementById(id);
+        return acc;
+      }, {});
+
+    let spriteImage = new Image();
+
+    input.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        spriteImage.onload = () => {
+          canvas.width = spriteImage.width;
+          canvas.height = spriteImage.height;
+          drawGridOverlay();
+        };
+        spriteImage.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    Object.values(settings).forEach(input => {
+      input.addEventListener('input', drawGridOverlay);
+    });
+
+    function drawGridOverlay() {
+      if (!spriteImage.src) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(spriteImage, 0, 0);
+
+      const fw = parseInt(settings.frameWidth.value);
+      const fh = parseInt(settings.frameHeight.value);
+      const mx = parseInt(settings.marginX.value);
+      const my = parseInt(settings.marginY.value);
+      const sx = parseInt(settings.spacingX.value);
+      const sy = parseInt(settings.spacingY.value);
+
+      ctx.strokeStyle = '#0f0';
+      for (let y = my; y + fh <= spriteImage.height; y += fh + sy) {
+        for (let x = mx; x + fw <= spriteImage.width; x += fw + sx) {
+          ctx.strokeRect(x, y, fw, fh);
+        }
+      }
+    }
+
+    function extractFrames() {
+      if (!spriteImage.src) return;
+      const fw = parseInt(settings.frameWidth.value);
+      const fh = parseInt(settings.frameHeight.value);
+      const mx = parseInt(settings.marginX.value);
+      const my = parseInt(settings.marginY.value);
+      const sx = parseInt(settings.spacingX.value);
+      const sy = parseInt(settings.spacingY.value);
+
+      previewDiv.innerHTML = '';
+      const tempCanvas = document.createElement('canvas');
+      const tctx = tempCanvas.getContext('2d');
+      tempCanvas.width = fw;
+      tempCanvas.height = fh;
+
+      for (let y = my; y + fh <= spriteImage.height; y += fh + sy) {
+        for (let x = mx; x + fw <= spriteImage.width; x += fw + sx) {
+          tctx.clearRect(0, 0, fw, fh);
+          tctx.drawImage(spriteImage, x, y, fw, fh, 0, 0, fw, fh);
+          const img = new Image();
+          img.src = tempCanvas.toDataURL();
+          img.style.border = '1px solid #0f0';
+          img.style.margin = '2px';
+          img.title = `x:${x}, y:${y}`;
+          previewDiv.appendChild(img);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

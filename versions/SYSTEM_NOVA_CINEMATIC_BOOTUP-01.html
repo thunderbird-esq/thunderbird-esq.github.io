@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Nova Boot</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      color: #ccc;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow: hidden;
+    }
+
+    .boot-logo {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .boot-logo img {
+      image-rendering: pixelated;
+      width: 320px;
+      height: 400px;
+    }
+
+    .boot-text {
+      padding: 20px;
+      white-space: pre-wrap;
+      line-height: 1.3em;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+    }
+
+    .fsv-screen {
+      display: none;
+      background: radial-gradient(ellipse at center, #1a1a1a 0%, #000 100%);
+      color: #0ff;
+      font-family: monospace;
+      padding: 40px;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .progress-bar {
+      width: 80%;
+      margin: 40px auto;
+      height: 24px;
+      background-color: #333;
+      border: 2px solid #0ff;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0ff, #044);
+      transition: width 0.5s ease-in-out;
+    }
+
+    #audioPlayer {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="boot-logo">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/All_Seeing_Eye.svg/320px-All_Seeing_Eye.svg.png" alt="System Nova Logo" />
+</div>
+
+<pre class="boot-text" id="bootText">
+</pre>
+
+<div class="fsv-screen" id="fsvScreen">
+  <h2>SYSTEM NOVA OS 1.0</h2>
+  <div class="progress-bar">
+    <div class="progress-bar-inner" id="progressBar"></div>
+  </div>
+  <p>Initializing modules... Please stand by.</p>
+</div>
+
+<audio id="audioPlayer" preload="auto">
+  <source src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Computer_beep_3.ogg" type="audio/ogg">
+</audio>
+
+<audio id="bootSound" preload="auto">
+  <source src="https://upload.wikimedia.org/wikipedia/commons/b/b2/PC_BIOS_beep.ogg" type="audio/ogg">
+</audio>
+
+<audio id="startupNoise" preload="auto">
+  <source src="https://upload.wikimedia.org/wikipedia/commons/6/67/Mac_startup_tone.ogg" type="audio/ogg">
+</audio>
+
+<script>
+  const bootLines = [
+    "Boot ROM Checksum...........OK",
+    "Internal Speaker.............BEEP",
+    "Floppy Drive 1...............CLICK...OK",
+    "SCSI Bus Init..................✓",
+    "Drive 0: Quantum Fireball....SPINNING",
+    "VRAM Test.....................OK",
+    "CPU Temp Sensor...............52°C",
+    "Starting Kernel Services",
+    "Loading Shell Interface",
+    "Running Memory Diagnostics...PASS",
+    "Mounting System Volume........OK",
+    "Starting FSV Layer...........✓",
+    "Transferring control to OS..."
+  ];
+
+  let i = 0;
+  const bootText = document.getElementById('bootText');
+  const audio = document.getElementById('audioPlayer');
+  const bootBeep = document.getElementById('bootSound');
+  const startupNoise = document.getElementById('startupNoise');
+
+  function showNextLine() {
+    if (i < bootLines.length) {
+      const line = bootLines[i];
+      bootText.textContent += line + '\n';
+      bootText.style.opacity = 1;
+      if (i % 2 === 0) bootBeep.play();
+      i++;
+      setTimeout(showNextLine, 500 + Math.random() * 1000);
+    } else {
+      setTimeout(() => {
+        document.querySelector('.boot-logo').style.display = 'none';
+        bootText.style.display = 'none';
+        document.getElementById('fsvScreen').style.display = 'block';
+        simulateFSVLoading();
+      }, 1000);
+    }
+  }
+
+  function simulateFSVLoading() {
+    let progress = 0;
+    const bar = document.getElementById('progressBar');
+    const interval = setInterval(() => {
+      progress += Math.random() * 10;
+      if (progress >= 100) {
+        bar.style.width = "100%";
+        clearInterval(interval);
+        startupNoise.play();
+      } else {
+        bar.style.width = progress + "%";
+        if (Math.random() < 0.2) audio.play(); // fan noise random burst
+      }
+    }, 500);
+  }
+
+  window.onload = () => {
+    bootBeep.play();
+    showNextLine();
+  };
+</script>
+
+</body>
+</html>

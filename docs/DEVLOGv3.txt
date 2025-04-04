@@ -1,0 +1,24 @@
+**Feature Updates and Fixes: Scaling & Filters Integration**
+
+1. **Scaling Functionality (Presets)**
+   - Implemented dropdown menu with retro system presets: NES, SNES, Genesis, GameBoy.
+   - Selecting a preset now correctly updates frame preview and final output resolution.
+   - Aspect ratio is preserved during scaling to prevent stretching/squishing of frames.
+   - Resolutions automatically update the cell width/height inputs.
+
+2. **Functional Retro Filters**
+   - Integrated retro-style filters including:
+     - Grayscale
+     - Invert
+     - NES (palette emulation)
+     - GameBoy (palette emulation)
+     - Pico-8 (limited color mode)
+     - CGA (emulates early PC graphic style)
+   - Filters are now applied to both the preview grid and the rendered GIF output.
+
+3. **Bug Fixes**
+   - Resolved `applyScaling is not defined` error that occurred on dropdown change.
+   - Ensured scaling dropdown logic connects to width/height fields and triggers rerender.
+   - Ensured proper referencing of per-frame filters in the GIF render pipeline.
+
+Current status: BIG GIFS is now equipped with dynamic scaling, pixel-art filter options, per-frame customization, drag-and-drop frame reordering, and a fully working preview/playback pipeline. The groundwork is laid for advancing into sprite sheet importing and UX/UI simulation.

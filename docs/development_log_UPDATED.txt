@@ -1,0 +1,76 @@
+BIG GIFS - Development Log (Nova & ChatGPT)
+===========================================
+
+🛠️ Project: BIG GIFS - Browser-Based GIF Creation Tool
+🌟 Developer: Nova
+🤖 Partner-in-code: ChatGPT
+
+------------------------------------------------------------
+PHASE 1–4: Completed Highlights
+------------------------------------------------------------
+✔ Upload image sequences
+✔ Preview frame grid (4 across)
+✔ Cell width/height + FPS controls
+✔ Drag-and-drop frame reordering
+✔ Per-frame filter, delay, duplication, deletion
+✔ Output GIF preview (play/pause, seek, frame counter)
+✔ GIF export & download (looping)
+✔ Auto-fill dimensions from imported frames
+✔ Save/load project as JSON
+✔ Retro aesthetic: centered Courier layout, delete button color-coded
+✔ Basic filters: grayscale, invert, sepia
+✔ Retro palette filters: Game Boy, CGA, NES, PICO-8 (via nearest color matching)
+
+------------------------------------------------------------
+PHASE 5: In Progress — Ratio + Scaling Controls
+------------------------------------------------------------
+
+✨ NEW FEATURES BEING IMPLEMENTED:
+
+➤ Scaling Options Dropdown
+   - Position: Under width/height inputs
+   - Options: 1x, 2x, 3x, 4x
+   - Preserves current frame aspect ratio
+   - Updates width/height inputs when selected
+
+➤ Retro Sprite Size Presets
+   - Game Boy: 8×8
+   - NES: 8×8
+   - SNES: 8×8 and 16×16
+   - Sega Genesis: 8×8
+   - Selecting any will overwrite both width & height inputs to preset values
+
+➤ Integration Logic
+   - JavaScript logic ensures correct interaction between scaling + sprite presets
+   - If original dimensions are known, scaling adjusts relatively
+   - Aspect ratio preserved when scaling is applied
+
+➤ Interface Layout
+   - New dropdowns are placed in a clean row under the dimension inputs
+   - Styled to match retro interface (no bold, Courier font, size 10px)
+   - Functionality seamlessly ties into existing renderPreview + createGIF functions
+
+➤ Retro Filter Fixes
+   - Bugfix: retro palette filters (gameboy, etc.) weren’t previously applying
+   - Implemented pixel color remapping using nearest-color logic
+   - Optimized canvas context using `willReadFrequently: true`
+
+------------------------------------------------------------
+NEXT PHASES
+------------------------------------------------------------
+
+🔲 Advanced Filtering
+   - Brightness/contrast sliders
+   - Saturation/desaturation
+   - Blur, glow, or blend modes
+
+🔲 Per-frame cropping and zoom
+🔲 Export as sprite sheet (PNG)
+🔲 System 6-style pixel-art UI simulation
+🔲 Trash can drag-to-delete with animations
+🔲 Retro audio sync or timeline view (possible stretch goal)
+
+------------------------------------------------------------
+DEV NOTES
+------------------------------------------------------------
+Nova's vision continues to guide feature design. Prioritizing functionality first ensures future UI polish can integrate cleanly. Current strategy focuses on a rock-solid backend so the full BBS/OS6 interface can flourish later.

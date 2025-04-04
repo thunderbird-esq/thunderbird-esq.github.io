@@ -1,0 +1,46 @@
+BIG GIFS LAB - SPRITE SLICER MODULE DEVELOPMENT LOG
+----------------------------------------------------
+Date: 2025-04-02 05:35:25
+
+Overview:
+---------
+This log documents the development progress of the Sprite Slicer module within the BIG GIFS LAB project. This tool enables users to import sprite sheets and extract individual frames via grid slicing or manual selection.
+
+Major Features Implemented:
+---------------------------
+✅ Grid-based slicing with adjustable cell width and height
+✅ Manual frame selection via click-and-drag
+✅ Toggle between Grid Mode and Manual Mode
+✅ Real-time overlay previews for each selected frame
+✅ Manual rows and columns input for grid slicing
+✅ Semi-transparent overlay boxes with frame labels
+✅ Frame preview window showing all sliced frames
+✅ Ability to delete individual frames from preview
+✅ Undo button to remove last manual selection
+✅ Status display showing the number of extracted frames
+✅ Simulated "Export to BIG GIFS LAB" button for integration
+
+User Interface Enhancements:
+----------------------------
+- Grid guides are drawn transparently for visual assistance
+- Manual frame selectors display on canvas with bounding boxes
+- Simple, accessible UI for quick toggling and input changes
+- Frame preview layout displays each extracted image
+
+Known Limitations:
+------------------
+- Currently does not pass sliced frames to the full BIG GIFS LAB
+- Sprite slicer exists as a standalone HTML tool (integration TBD)
+- No snapping for grid alignment in manual mode (future enhancement)
+
+Next Steps:
+-----------
+- Restore grid overlay toggle button
+- Snapping for grid alignment in manual mode
+- Integrate frame data handoff between Sprite Slicer and BIG GIFS LAB
+- Add zoom/pan controls for better manual slicing UX
+- Enable frame reordering prior to export
+- Add error handling for non-uniform sprite sheets
+- Auto-detect slicing boundaries using edge detection
+
+End of Log Entry

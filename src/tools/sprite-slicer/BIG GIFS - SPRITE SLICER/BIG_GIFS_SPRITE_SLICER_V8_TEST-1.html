@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BIG GIFS - Sprite Slicer</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #111;
+      color: #eee;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      border: 1px solid #444;
+      background: #000;
+      cursor: crosshair;
+      margin: 10px auto;
+      display: block;
+    }
+    .controls {
+      margin-top: 10px;
+    }
+    input, select, button {
+      margin: 5px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>BIG GIFS - Sprite Slicer</h1>
+  <input type="file" id="spriteSheetInput" accept="image/*" />
+  <div class="controls">
+    <button onclick="toggleGrid()">Toggle Grid Overlay</button>
+    <button onclick="zoomIn()">Zoom In</button>
+    <button onclick="zoomOut()">Zoom Out</button>
+    <button onclick="resetZoom()">Reset View</button><br/>
+    Rows: <input type="number" id="rows" value="1" min="1" />
+    Cols: <input type="number" id="cols" value="1" min="1" />
+    <button onclick="sliceGrid()">Slice Grid</button>
+  </div>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const spriteSheetInput = document.getElementById('spriteSheetInput');
+    let img = new Image();
+    let zoom = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let showGrid = true;
+    let rows = 1;
+    let cols = 1;
+
+    let selections = [];
+
+    spriteSheetInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          draw();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, offsetX, offsetY, img.width * zoom, img.height * zoom);
+      if (showGrid && rows > 0 && cols > 0) {
+        const cellW = img.width / cols;
+        const cellH = img.height / rows;
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        for (let r = 1; r < rows; r++) {
+          const y = r * cellH * zoom;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+        for (let c = 1; c < cols; c++) {
+          const x = c * cellW * zoom;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function toggleGrid() {
+      showGrid = !showGrid;
+      draw();
+    }
+
+    function zoomIn() {
+      zoom *= 1.2;
+      draw();
+    }
+
+    function zoomOut() {
+      zoom /= 1.2;
+      draw();
+    }
+
+    function resetZoom() {
+      zoom = 1;
+      offsetX = 0;
+      offsetY = 0;
+      draw();
+    }
+
+    function sliceGrid() {
+      rows = parseInt(document.getElementById('rows').value);
+      cols = parseInt(document.getElementById('cols').value);
+      draw();
+    }
+  </script>
+</body>
+</html>

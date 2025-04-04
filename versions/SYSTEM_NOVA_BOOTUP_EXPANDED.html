@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Nova Boot</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      color: #ccc;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    .boot-sequence {
+      padding: 20px;
+      white-space: pre-wrap;
+      line-height: 1.3em;
+    }
+
+    @keyframes scrollBoot {
+      0% { transform: translateY(100%); opacity: 0; }
+      10% { transform: translateY(0); opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; display: none; }
+    }
+
+    .boot-container {
+      animation: scrollBoot 10s forwards;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      z-index: 999;
+    }
+
+    .desktop-message {
+      display: none;
+    }
+
+    .boot-container.ended + .desktop-message {
+      display: block;
+      color: #0f0;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="boot-container" id="bootContainer">
+  <div class="boot-sequence" id="bootText">
+System Nova v1.0 - Copyright 1989–2025
+
+Boot ROM Checksum...........OK
+Initializing hardware.......OK
+  - CPU: R4200@100MHz
+  - RAM: 64MB SIMM
+  - VRAM: 2MB
+Detecting graphics system...IRIS 1000 Display Module Detected
+Loading BIOS routines.......✓
+Checking SCSI devices:
+  - Drive 0: Quantum 120MB.....................OK
+  - Drive 1: SyQuest Removable.................OK
+  - Drive 2: Not Detected
+Checking file system........OK
+Launching System Kernel.....
+  > Enabling memory manager
+  > Mounting file system
+  > Initializing display drivers
+  > Starting window server........OK
+  > Launching Finder
+
+Welcome to SYSTEM NOVA
+Please wait while the desktop loads...
+  </div>
+</div>
+
+<div class="desktop-message">
+[SYSTEM NOVA READY — Launching Desktop...]
+</div>
+
+<script>
+  setTimeout(() => {
+    document.getElementById('bootContainer').classList.add('ended');
+  }, 10000);
+</script>
+</body>
+</html>

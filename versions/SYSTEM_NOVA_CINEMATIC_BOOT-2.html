@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Nova Boot</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      color: #ccc;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow: hidden;
+    }
+
+    .start-screen {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 1000;
+    }
+
+    .start-screen button {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+      background: #111;
+      border: 2px solid #0f0;
+      color: #0f0;
+      cursor: pointer;
+    }
+
+    .boot-logo {
+      text-align: right;
+      margin-top: 100px;
+      padding-right: 60px;
+      display: none;
+    }
+
+    .boot-logo img {
+      image-rendering: pixelated;
+      width: 320px;
+      height: 400px;
+    }
+
+    .boot-text {
+      padding: 20px 40px;
+      white-space: pre-wrap;
+      line-height: 1.3em;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      display: none;
+      position: absolute;
+      top: 120px;
+      left: 40px;
+    }
+
+    .fsv-screen {
+      display: none;
+      background: radial-gradient(ellipse at center, #1a1a1a 0%, #000 100%);
+      color: #0ff;
+      font-family: monospace;
+      padding: 40px;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .progress-bar {
+      width: 80%;
+      margin: 40px auto;
+      height: 24px;
+      background-color: #333;
+      border: 2px solid #0ff;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0ff, #044);
+      transition: width 0.5s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+<div class="start-screen" id="startScreen">
+  <h1>SYSTEM NOVA</h1>
+  <p>Press start to boot</p>
+  <button onclick="startBoot()">Power On</button>
+</div>
+
+<div class="boot-logo" id="bootLogo">
+  <img src="A_pixelated_2D_digital_graphic_features_an_all-see.png" alt="System Nova Logo" />
+</div>
+
+<pre class="boot-text" id="bootText"></pre>
+
+<div class="fsv-screen" id="fsvScreen">
+  <h2>SYSTEM NOVA OS 1.0</h2>
+  <div class="progress-bar">
+    <div class="progress-bar-inner" id="progressBar"></div>
+  </div>
+  <p>Initializing modules... Please stand by.</p>
+</div>
+
+<script>
+  const bootLines = [
+    "Running diagnostics...",
+    "Testing memory...",
+    "Booting from ROM BIOS...",
+    "Checking floppy disk drives...",
+    "Probing PCI buses...",
+    "Initializing operating system..."
+  ];
+
+  let i = 0;
+
+  function startBoot() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('bootLogo').style.display = 'block';
+    document.getElementById('bootText').style.display = 'block';
+    showNextLine();
+  }
+
+  function showNextLine() {
+    const bootText = document.getElementById('bootText');
+    if (i < bootLines.length) {
+      bootText.textContent += bootLines[i] + '\n';
+      bootText.style.opacity = 1;
+      i++;
+      setTimeout(showNextLine, 500 + Math.random() * 1000);
+    } else {
+      setTimeout(() => {
+        document.getElementById('bootLogo').style.display = 'none';
+        bootText.style.display = 'none';
+        document.getElementById('fsvScreen').style.display = 'block';
+        simulateFSVLoading();
+      }, 1500);
+    }
+  }
+
+  function simulateFSVLoading() {
+    let progress = 0;
+    const bar = document.getElementById('progressBar');
+    const interval = setInterval(() => {
+      progress += Math.random() * 10;
+      if (progress >= 100) {
+        bar.style.width = "100%";
+        clearInterval(interval);
+      } else {
+        bar.style.width = progress + "%";
+      }
+    }, 500);
+  }
+</script>
+
+</body>
+</html>

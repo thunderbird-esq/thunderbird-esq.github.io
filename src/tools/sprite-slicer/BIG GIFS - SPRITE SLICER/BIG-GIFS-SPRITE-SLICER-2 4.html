@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Sprite Sheet Slicer with Grid Overlay</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #111;
+      color: #0f0;
+      padding: 20px;
+      text-align: center;
+    }
+    canvas {
+      background: #000;
+      border: 1px solid #0f0;
+      margin-top: 10px;
+    }
+    label, input {
+      display: block;
+      margin: 5px auto;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .controls > div {
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <h1>BIG GIFS - Sprite Sheet Slicer</h1>
+  <input type="file" id="spriteSheetInput" accept="image/*">
+  <div class="controls">
+    <div><label>Frame Width: <input type="number" id="frameWidth" value="32"></label></div>
+    <div><label>Frame Height: <input type="number" id="frameHeight" value="32"></label></div>
+    <div><label>Margin X: <input type="number" id="marginX" value="0"></label></div>
+    <div><label>Margin Y: <input type="number" id="marginY" value="0"></label></div>
+    <div><label>Spacing X: <input type="number" id="spacingX" value="0"></label></div>
+    <div><label>Spacing Y: <input type="number" id="spacingY" value="0"></label></div>
+  </div>
+  <canvas id="previewCanvas"></canvas>
+
+  <script>
+    const input = document.getElementById('spriteSheetInput');
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const controls = ['frameWidth', 'frameHeight', 'marginX', 'marginY', 'spacingX', 'spacingY'];
+    const settings = {};
+    controls.forEach(id => {
+      settings[id] = document.getElementById(id);
+      settings[id].addEventListener('input', drawGridOverlay);
+    });
+
+    let spriteImage = new Image();
+
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        spriteImage.onload = function() {
+          canvas.width = spriteImage.width;
+          canvas.height = spriteImage.height;
+          drawGridOverlay();
+        };
+        spriteImage.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function drawGridOverlay() {
+      if (!spriteImage.src) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(spriteImage, 0, 0);
+
+      const fw = parseInt(settings.frameWidth.value);
+      const fh = parseInt(settings.frameHeight.value);
+      const mx = parseInt(settings.marginX.value);
+      const my = parseInt(settings.marginY.value);
+      const sx = parseInt(settings.spacingX.value);
+      const sy = parseInt(settings.spacingY.value);
+
+      ctx.strokeStyle = '#0f0';
+      for (let y = my; y + fh <= canvas.height; y += fh + sy) {
+        for (let x = mx; x + fw <= canvas.width; x += fw + sx) {
+          ctx.strokeRect(x, y, fw, fh);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

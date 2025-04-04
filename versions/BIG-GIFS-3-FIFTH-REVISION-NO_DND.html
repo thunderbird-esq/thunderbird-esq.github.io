@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS - Image Sequence to GIF</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #000;
+      color: #0F0;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      font-size: 10px;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    .container {
+      display: inline-block;
+      text-align: center;
+    }
+    pre {
+      color: #FF00FF;
+      font-size: 16px;
+      line-height: 1;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input, button, select, label {
+      font-family: 'Courier New', monospace;
+      background-color: #222;
+      color: #0F0;
+      border: 1px solid #0F0;
+      padding: 5px;
+      margin: 5px;
+      font-size: 10px;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    label {
+      background: none;
+      border: none;
+    }
+    input[type="number"] {
+      width: 60px;
+    }
+    #imageInput {
+      text-transform: uppercase;
+    }
+    #preview {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      justify-content: center;
+      gap: 10px;
+      margin: 40px 0;
+    }
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 5px;
+      padding: 5px;
+      border: 1px dashed #0F0;
+      cursor: grab;
+    }
+    .preview-img {
+      object-fit: cover;
+      border: 1px solid #0F0;
+    }
+    .frame-number {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #FF00FF;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <pre>
+  ____  _____ _____     ____ _____ 
+ | __ )| ____|_   _|   / ___| ____|
+ |  _ \|  _|   | |    | |  _|  _|  
+ | |_) | |___  | |    | |_| | |___ 
+ |____/|_____| |_|     \____|_____|
+    </pre>
+
+    <input type="file" id="imageInput" multiple directory webkitdirectory accept="image/*">
+    <br>
+    <label for="cellWidth">width:</label>
+    <input type="number" id="cellWidth" value="100">
+    <label for="cellHeight">height:</label>
+    <input type="number" id="cellHeight" value="100">
+    <br>
+    <label for="frameRate">fps:</label>
+    <input type="number" id="frameRate" value="2" min="1">
+    <label for="globalDelay">global delay (ms):</label>
+    <input type="number" id="globalDelay" value="100">
+    <button onclick="applyGlobalDelay()">apply to all</button>
+    <br>
+    <label for="transparencyToggle">transparency:</label>
+    <input type="checkbox" id="transparencyToggle">
+    <br>
+    <button onclick="createGIF()">create gif</button>
+    <button onclick="saveProject()">save project</button>
+    <input type="file" id="loadProject" style="display:none" accept="application/json">
+    <button onclick="document.getElementById('loadProject').click()">load project</button>
+
+    <div id="preview"></div>
+
+    <div id="gifContainer">
+      <img id="gifPreview" src="" alt="Generated GIF">
+      <div id="frameCounter">frame: 0 / 0</div>
+      <div id="seekControls">
+        <button onclick="seekFrame(-1)" style="margin:5px">&lt; prev</button>
+        <button onclick="seekFrame(1)" style="margin:5px">next &gt;</button>
+      </div>
+      <button id="playPauseButton" onclick="togglePlayPause()">play</button>
+      <br><br>
+      <button id="downloadButton" style="display:none;" onclick="downloadGIF()">download gif</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+  <script>
+const imageInput = document.getElementById('imageInput');
+const preview = document.getElementById('preview');
+
+let images = [];
+let gifBlob = null;
+let gifUrl = '';
+let isPlaying = false;
+let currentFrameIndex = 0;
+
+const cellWidthInput = document.getElementById('cellWidth');
+const cellHeightInput = document.getElementById('cellHeight');
+const frameRateInput = document.getElementById('frameRate');
+const transparencyToggle = document.getElementById('transparencyToggle');
+const gifPreview = document.getElementById('gifPreview');
+const downloadButton = document.getElementById('downloadButton');
+const playPauseButton = document.getElementById('playPauseButton');
+const frameCounter = document.getElementById('frameCounter');
+
+imageInput.addEventListener('change', function () {
+  images = [];
+  preview.innerHTML = '';
+  const files = Array.from(this.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  let loaded = 0;
+
+  files.forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        images.push({ img, delay: 100, filter: 'none', crop: null });
+        if (index === 0) {
+          cellWidthInput.value = img.width;
+          cellHeightInput.value = img.height;
+        }
+        loaded++;
+        if (loaded === files.length) renderPreviews();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+function renderPreviews() {
+  preview.innerHTML = '';
+  images.forEach((frame, index) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    item.dataset.index = index;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const width = parseInt(cellWidthInput.value);
+    const height = parseInt(cellHeightInput.value);
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.drawImage(frame.img, 0, 0, width, height);
+
+    if (frame.filter !== 'none') {
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (frame.filter === 'grayscale') {
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          data[i] = data[i + 1] = data[i + 2] = avg;
+        } else if (frame.filter === 'invert') {
+          data[i] = 255 - data[i];
+          data[i + 1] = 255 - data[i + 1];
+          data[i + 2] = 255 - data[i + 2];
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    canvas.className = 'preview-img';
+
+    const label = document.createElement('div');
+    label.className = 'frame-number';
+    label.textContent = `Frame ${index + 1}`;
+
+    const delayInput = document.createElement('input');
+    delayInput.type = 'number';
+    delayInput.value = frame.delay;
+    delayInput.name = `delay-${index}`;
+    delayInput.onchange = e => {
+      frame.delay = parseInt(e.target.value);
+    };
+
+    const filterSelect = document.createElement('select');
+    filterSelect.name = `filter-${index}`;
+    ['none', 'grayscale', 'invert'].forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.textContent = opt;
+      if (opt === frame.filter) option.selected = true;
+      filterSelect.appendChild(option);
+    });
+    filterSelect.onchange = e => {
+      frame.filter = e.target.value;
+      renderPreviews();
+    };
+
+    const duplicate = document.createElement('button');
+    duplicate.textContent = 'duplicate';
+    duplicate.onclick = () => {
+      images.splice(index + 1, 0, { ...frame });
+      renderPreviews();
+    };
+
+    const del = document.createElement('button');
+    del.textContent = 'delete';
+    del.style.border = '1px solid red';
+    del.style.color = '#FF00FF';
+    del.onclick = () => {
+      images.splice(index, 1);
+      renderPreviews();
+    };
+
+    item.append(canvas, label, delayInput, filterSelect, duplicate, del);
+    preview.appendChild(item);
+  });
+
+  updateFrameCounter();
+}
+
+function createGIF() {
+  const cellWidth = parseInt(cellWidthInput.value);
+  const cellHeight = parseInt(cellHeightInput.value);
+  const useTransparency = transparencyToggle.checked;
+
+  const gif = new GIF({
+    workers: 2,
+    quality: 10,
+    width: cellWidth,
+    height: cellHeight,
+    transparent: useTransparency ? 0x000000 : null,
+    repeat: 0
+  });
+
+  images.forEach(frame => {
+    const canvas = document.createElement('canvas');
+    canvas.width = cellWidth;
+    canvas.height = cellHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(frame.img, 0, 0, cellWidth, cellHeight);
+
+    if (frame.filter !== 'none') {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (frame.filter === 'grayscale') {
+          const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+          data[i] = data[i+1] = data[i+2] = avg;
+        } else if (frame.filter === 'invert') {
+          data[i] = 255 - data[i];
+          data[i+1] = 255 - data[i+1];
+          data[i+2] = 255 - data[i+2];
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    gif.addFrame(canvas, { delay: frame.delay });
+  });
+
+  gif.on('finished', function(blob) {
+    gifBlob = blob;
+    gifUrl = URL.createObjectURL(blob);
+    gifPreview.src = gifUrl;
+    downloadButton.style.display = 'inline-block';
+    isPlaying = true;
+    playPauseButton.textContent = 'pause';
+  });
+
+  gif.render();
+}
+
+function togglePlayPause() {
+  if (!gifUrl) return;
+  if (isPlaying) {
+    gifPreview.src = '';
+    playPauseButton.textContent = 'play';
+  } else {
+    gifPreview.src = gifUrl;
+    playPauseButton.textContent = 'pause';
+  }
+  isPlaying = !isPlaying;
+}
+
+function updateFrameCounter() {
+  frameCounter.textContent = `frame: ${currentFrameIndex + 1} / ${images.length}`;
+}
+
+function seekFrame(dir) {
+  if (!images.length) return;
+  currentFrameIndex = Math.max(0, Math.min(images.length - 1, currentFrameIndex + dir));
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const w = parseInt(cellWidthInput.value);
+  const h = parseInt(cellHeightInput.value);
+  canvas.width = w;
+  canvas.height = h;
+  ctx.drawImage(images[currentFrameIndex].img, 0, 0, w, h);
+  gifPreview.src = canvas.toDataURL();
+  isPlaying = false;
+  playPauseButton.textContent = 'play';
+  updateFrameCounter();
+}
+
+function applyGlobalDelay() {
+  const delay = parseInt(document.getElementById('globalDelay').value);
+  images.forEach(frame => frame.delay = delay);
+  renderPreviews();
+}
+
+function downloadGIF() {
+  if (!gifBlob) return;
+  const a = document.createElement('a');
+  a.href = gifUrl;
+  a.download = 'animated.gif';
+  a.click();
+}
+
+function saveProject() {
+  const data = {
+    cellWidth: cellWidthInput.value,
+    cellHeight: cellHeightInput.value,
+    fps: frameRateInput.value,
+    globalDelay: document.getElementById('globalDelay').value,
+    transparency: transparencyToggle.checked,
+    frames: images.map(f => ({
+      src: f.img.src,
+      delay: f.delay,
+      filter: f.filter || 'none',
+      crop: f.crop || null
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'big-gifs-project.json';
+  a.click();
+}
+</script>
+
+
+</body>
+</html>
