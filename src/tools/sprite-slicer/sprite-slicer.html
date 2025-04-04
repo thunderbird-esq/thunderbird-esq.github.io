@@ -25,7 +25,7 @@
       overflow: hidden;
     }
     .sidebar {
-      width: 300px;
+      width: 250px; /* Reduced width to give more space to the workspace */
       background: #111;
       border-right: 2px solid #0ff;
       padding: 10px;
@@ -61,12 +61,38 @@
       font-size: 12px;
     }
     .preview-section {
-      width: 200px;
+      width: 150px; /* Reduced width to give more space to the workspace */
       background: #111;
       border-left: 2px solid #0ff;
       padding: 10px;
       overflow-y: auto;
       flex-shrink: 0;
+    }
+    .selection-window {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      border: 2px solid #0ff;
+      padding: 10px;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    .selection-window canvas {
+      border: 1px solid #0ff;
+      max-width: 400px;
+      max-height: 400px;
+    }
+    .selection-window button {
+      background: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+      padding: 5px 10px;
+      cursor: pointer;
+      margin: 5px;
     }
     h1 {
       margin: 0 0 10px;
@@ -138,12 +164,12 @@
     canvas {
       border: 1px solid #0ff;
       max-width: 100%;
-      max-height: 400px;
+      max-height: 600px; /* Increased max-height for larger canvas */
     }
     #edgeCanvas {
       border: 1px solid #f00;
       max-width: 100%;
-      max-height: 400px;
+      max-height: 600px;
     }
     .status {
       text-align: center;
@@ -203,9 +229,14 @@
       }
       .preview-section {
         width: 100%;
-        height: 200px;
+        height: 150px;
         border-left: none;
         border-top: 2px solid #0ff;
+      }
+      .selection-window {
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
       }
     }
   </style>
@@ -244,6 +275,9 @@
         <details open>
           <summary>Edge Detection Settings</summary>
           <div class="control-group">
+            <label title="Constrain edge detection to grid cells">
+              <input type="checkbox" id="gridConstrainedEdge" onchange="autoSlice()"> Grid-Constrained Edge Detection
+            </label>
             <label title="Adjust contrast to improve edge detection">
               Contrast:
               <input type="range" id="contrast" min="0.5" max="2" step="0.1" value="1" oninput="syncInput('contrast'); autoSlice()">
@@ -286,6 +320,13 @@
       </div>
       <div class="manual-controls" id="manualControls">
         <div class="control-group">
+          <label title="Select the tool for manual selection">
+            Tool:
+            <select id="manualTool" onchange="updateManualTool()">
+              <option value="rectangle">Rectangle</option>
+              <option value="lasso">Lasso</option>
+            </select>
+          </label>
           <label title="Show grid overlay in manual mode">
             <input type="checkbox" id="showGrid" checked onchange="drawCanvas()"> Show Grid
           </label>
@@ -317,6 +358,10 @@
       <h2>Preview Frames</h2>
       <div class="frames" id="previewSection"></div>
     </div>
+    <div class="selection-window" id="selectionWindow">
+      <canvas id="selectionCanvas"></canvas>
+      <button onclick="closeSelectionWindow()">Close</button>
+    </div>
   </div>
 
   <script>
@@ -335,13 +380,20 @@
     let opencvReady = false;
     let selectedCorner = null;
     let selectedRectIndex = null;
-    let selectedArray = null; // To track whether we're adjusting autoSelections or manualSelections
+    let selectedArray = null;
+    let manualTool = 'rectangle';
+    let lassoPoints = [];
+    let isLassoDrawing = false;
+    let currentSelectionIndex = null;
     const canvas = document.getElementById('spriteCanvas');
     const ctx = canvas.getContext('2d');
     const edgeCanvas = document.getElementById('edgeCanvas');
     const edgeCtx = edgeCanvas.getContext('2d');
     const previewSection = document.getElementById('previewSection');
     const status = document.getElementById('status');
+    const selectionWindow = document.getElementById('selectionWindow');
+    const selectionCanvas = document.getElementById('selectionCanvas');
+    const selectionCtx = selectionCanvas.getContext('2d');
 
     const defaultSettings = {
       contrast: 1,
@@ -364,7 +416,7 @@
       mode = document.querySelector('input[name="mode"]:checked').value;
       document.getElementById('autoControls').style.display = mode === 'auto' ? 'block' : 'none';
       document.getElementById('refineControls').style.display = mode === 'refine' ? 'block' : 'none';
-      document.getElementById('manualControls').style.display = mode === 'manual' ? 'block' : 'none';
+      document.getElement 🙂: 'block';
       manualSelections = [];
       if (mode !== 'auto') frames = [];
       zoom = 1;
@@ -391,14 +443,12 @@
           zoom = 1;
           panX = 0;
           panY = 0;
-          // Suggest grid dimensions based on image size
           const suggestedRows = Math.max(1, Math.round(spriteImage.height / 32));
           const suggestedCols = Math.max(1, Math.round(spriteImage.width / 32));
           document.getElementById('rowsInput').value = suggestedRows;
           document.getElementById('colsInput').value = suggestedCols;
           defaultSettings.rows = suggestedRows;
           defaultSettings.cols = suggestedCols;
-          // Adjust edge detection settings based on image properties
           adjustEdgeDetectionSettings();
           drawCanvas();
           if (mode === 'auto' && opencvReady) autoSlice();
@@ -408,13 +458,11 @@
 
     function adjustEdgeDetectionSettings() {
       if (!spriteImage) return;
-      // Basic heuristic: Larger images might need a larger min contour area
       const imageArea = spriteImage.width * spriteImage.height;
       const suggestedMinContourArea = Math.max(100, Math.round(imageArea * 0.001));
       document.getElementById('minContourArea').value = suggestedMinContourArea;
       document.getElementById('minContourAreaNum').value = suggestedMinContourArea;
       defaultSettings.minContourArea = suggestedMinContourArea;
-      // Adjust thresholds based on image contrast (simplified)
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = spriteImage.width;
       tempCanvas.height = spriteImage.height;
@@ -471,74 +519,153 @@
     function autoSlice() {
       if (!spriteImage || !opencvReady) return;
 
-      // Create a temporary canvas to process the image
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = spriteImage.width;
-      tempCanvas.height = spriteImage.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      tempCtx.drawImage(spriteImage, 0, 0);
-
-      // Convert canvas to OpenCV Mat
-      const src = cv.imread(tempCanvas);
-      const gray = new cv.Mat();
-      const adjusted = new cv.Mat();
-      const blurred = new cv.Mat();
-      const edges = new cv.Mat();
-
-      // Preprocessing: Convert to grayscale
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-
-      // Adjust contrast
-      const contrast = parseFloat(document.getElementById('contrast').value);
-      gray.convertTo(adjusted, -1, contrast, 0);
-
-      // Apply Gaussian blur
-      const blurSize = parseInt(document.getElementById('blurAmount').value);
-      cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
-
-      // Apply Canny edge detection
-      cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
-
-      // Display edges on the edge canvas
-      edgeCtx.clearRect(0, 0, edgeCanvas.width, edgeCanvas.height);
-      const edgeMat = new cv.Mat();
-      cv.cvtColor(edges, edgeMat, cv.COLOR_GRAY2RGBA);
-      cv.imshow(edgeCanvas, edgeMat);
-      edgeMat.delete();
-
-      // Find contours
-      const contours = new cv.MatVector();
-      const hierarchy = new cv.Mat();
-      cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-      // Process contours to find bounding rectangles, constrained by grid
-      let rects = [];
-      const minContourArea = parseInt(document.getElementById('minContourArea').value);
+      const gridConstrained = document.getElementById('gridConstrainedEdge').checked;
       const rows = parseInt(document.getElementById('rowsInput').value);
       const cols = parseInt(document.getElementById('colsInput').value);
       const cellWidth = spriteImage.width / cols;
       const cellHeight = spriteImage.height / rows;
 
-      for (let i = 0; i < contours.size(); i++) {
-        const contour = contours.get(i);
-        const area = cv.contourArea(contour);
-        if (area >= minContourArea) {
-          const rect = cv.boundingRect(contour);
-          // Snap the rectangle to the nearest grid cell
-          const gridX = Math.round(rect.x / cellWidth) * cellWidth;
-          const gridY = Math.round(rect.y / cellHeight) * cellHeight;
-          const gridWidth = Math.round((rect.x + rect.width) / cellWidth) * cellWidth - gridX;
-          const gridHeight = Math.round((rect.y + rect.height) / cellHeight) * cellHeight - gridY;
-          if (gridWidth > 0 && gridHeight > 0) {
-            rects.push({
-              x: gridX,
-              y: gridY,
-              width: gridWidth,
-              height: gridHeight
-            });
+      let rects = [];
+
+      if (gridConstrained) {
+        // Process each grid cell individually
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const x = col * cellWidth;
+            const y = row * cellHeight;
+            const cellCanvas = document.createElement('canvas');
+            cellCanvas.width = cellWidth;
+            cellCanvas.height = cellHeight;
+            const cellCtx = cellCanvas.getContext('2d');
+            cellCtx.drawImage(
+              spriteImage,
+              x, y, cellWidth, cellHeight,
+              0, 0, cellWidth, cellHeight
+            );
+
+            const src = cv.imread(cellCanvas);
+            const gray = new cv.Mat();
+            const adjusted = new cv.Mat();
+            const blurred = new cv.Mat();
+            const edges = new cv.Mat();
+
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            const contrast = parseFloat(document.getElementById('contrast').value);
+            gray.convertTo(adjusted, -1, contrast, 0);
+            const blurSize = parseInt(document.getElementById('blurAmount').value);
+            cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
+            cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+
+            const contours = new cv.MatVector();
+            const hierarchy = new cv.Mat();
+            cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+            const minContourArea = parseInt(document.getElementById('minContourArea').value);
+            for (let i = 0; i < contours.size(); i++) {
+              const contour = contours.get(i);
+              const area = cv.contourArea(contour);
+              if (area >= minContourArea) {
+                const rect = cv.boundingRect(contour);
+                rects.push({
+                  x: rect.x + x,
+                  y: rect.y + y,
+                  width: rect.width,
+                  height: rect.height
+                });
+              }
+            }
+
+            src.delete();
+            gray.delete();
+            adjusted.delete();
+            blurred.delete();
+            edges.delete();
+            contours.delete();
+            hierarchy.delete();
           }
         }
+      } else {
+        // Process the entire image
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = spriteImage.width;
+        tempCanvas.height = spriteImage.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(spriteImage, 0, 0);
+
+        const src = cv.imread(tempCanvas);
+        const gray = new cv.Mat();
+        const adjusted = new cv.Mat();
+        const blurred = new cv.Mat();
+        const edges = new cv.Mat();
+
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        const contrast = parseFloat(document.getElementById('contrast').value);
+        gray.convertTo(adjusted, -1, contrast, 0);
+        const blurSize = parseInt(document.getElementById('blurAmount').value);
+        cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
+        cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+        const minContourArea = parseInt(document.getElementById('minContourArea').value);
+        for (let i = 0; i < contours.size(); i++) {
+          const contour = contours.get(i);
+          const area = cv.contourArea(contour);
+          if (area >= minContourArea) {
+            const rect = cv.boundingRect(contour);
+            const gridX = Math.round(rect.x / cellWidth) * cellWidth;
+            const gridY = Math.round(rect.y / cellHeight) * cellHeight;
+            const gridWidth = Math.round((rect.x + rect.width) / cellWidth) * cellWidth - gridX;
+            const gridHeight = Math.round((rect.y + rect.height) / cellHeight) * cellHeight - gridY;
+            if (gridWidth > 0 && gridHeight > 0) {
+              rects.push({
+                x: gridX,
+                y: gridY,
+                width: gridWidth,
+                height: gridHeight
+              });
+            }
+          }
+        }
+
+        src.delete();
+        gray.delete();
+        adjusted.delete();
+        blurred.delete();
+        edges.delete();
+        contours.delete();
+        hierarchy.delete();
       }
+
+      // Display edges on the edge canvas
+      edgeCtx.clearRect(0, 0, edgeCanvas.width, edgeCanvas.height);
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = spriteImage.width;
+      tempCanvas.height = spriteImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(spriteImage, 0, 0);
+      const src = cv.imread(tempCanvas);
+      const gray = new cv.Mat();
+      const adjusted = new cv.Mat();
+      const blurred = new cv.Mat();
+      const edges = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      const contrast = parseFloat(document.getElementById('contrast').value);
+      gray.convertTo(adjusted, -1, contrast, 0);
+      const blurSize = parseInt(document.getElementById('blurAmount').value);
+      cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
+      cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+      const edgeMat = new cv.Mat();
+      cv.cvtColor(edges, edgeMat, cv.COLOR_GRAY2RGBA);
+      cv.imshow(edgeCanvas, edgeMat);
+      edgeMat.delete();
+      src.delete();
+      gray.delete();
+      adjusted.delete();
+      blurred.delete();
+      edges.delete();
 
       // Merge nearby contours if enabled
       if (document.getElementById('mergeContours').checked) {
@@ -576,18 +703,9 @@
         status.textContent = `Frames: ${frames.length}`;
       }
 
-      // Clean up
-      src.delete();
-      gray.delete();
-      adjusted.delete();
-      blurred.delete();
-      edges.delete();
-      contours.delete();
-      hierarchy.delete();
-
       updatePreview();
       drawCanvas();
-    }
+   . }
 
     function mergeNearbyRects(rects, mergeDistance) {
       let merged = [];
@@ -682,6 +800,13 @@
       drawCanvas();
     }
 
+    function updateManualTool() {
+      manualTool = document.getElementById('manualTool').value;
+      lassoPoints = [];
+      isLassoDrawing = false;
+      drawCanvas();
+    }
+
     function drawCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (spriteImage) {
@@ -692,7 +817,6 @@
         ctx.restore();
       }
 
-      // Draw grid if enabled
       const rows = parseInt(document.getElementById('rowsInput').value);
       const cols = parseInt(document.getElementById('colsInput').value);
       const cellWidth = canvas.width / cols;
@@ -719,7 +843,6 @@
         ctx.restore();
       }
 
-      // Draw selections with corner handles if adjustCorners is enabled
       const adjustCorners = document.getElementById('adjustCorners').checked;
       const selections = mode === 'manual' ? manualSelections : autoSelections;
 
@@ -735,15 +858,29 @@
         ctx.fillText(`Frame ${index + 1}`, selection.x + 5 / zoom, selection.y + 15 / zoom);
 
         if (adjustCorners) {
-          // Draw corner handles
-          const handleSize = 10 / zoom; // Increased handle size for easier clicking
+          const handleSize = 10 / zoom;
           ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-          ctx.fillRect(selection.x - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-left
-          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize); // Top-right
-          ctx.fillRect(selection.x - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-left
-          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize); // Bottom-right
+          ctx.fillRect(selection.x - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize);
+          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize);
+          ctx.fillRect(selection.x - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize);
+          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize);
         }
       });
+
+      // Draw lasso path if in lasso mode
+      if (mode === 'manual' && manualTool === 'lasso' && lassoPoints.length > 0) {
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+        ctx.lineWidth = 2 / zoom;
+        ctx.beginPath();
+        ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+        for (let i = 1; i < lassoPoints.length; i++) {
+          ctx.lineTo(lassoPoints[i].x, lassoPoints[i].y);
+        }
+        if (!isLassoDrawing) {
+          ctx.closePath();
+        }
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -753,18 +890,17 @@
       const x = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
       const y = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
 
-      if (e.altKey) { // Alt + click to pan
+      if (e.altKey) {
         isPanning = true;
         lastPanX = e.clientX;
         lastPanY = e.clientY;
         return;
       }
 
-      // Check if we're adjusting corners
       const adjustCorners = document.getElementById('adjustCorners').checked;
       if (adjustCorners) {
         const selections = mode === 'manual' ? manualSelections : autoSelections;
-        const handleSize = 10 / zoom; // Match the handle size used in drawCanvas
+        const handleSize = 10 / zoom;
         selectedCorner = null;
         selectedRectIndex = null;
         selectedArray = null;
@@ -780,7 +916,7 @@
           for (const corner of corners) {
             const distX = x - corner.x;
             const distY = y - corner.y;
-            if (Math.abs(distX) <= handleSize && Math.abs(distY) <= handleSize) { // Increased sensitivity
+            if (Math.abs(distX) <= handleSize && Math.abs(distY) <= handleSize) {
               selectedCorner = corner.corner;
               selectedRectIndex = i;
               selectedArray = mode === 'manual' ? manualSelections : autoSelections;
@@ -792,11 +928,13 @@
         }
       }
 
-      // If not adjusting corners, proceed with manual selection
       if (!isDragging && mode === 'manual') {
         startX = x;
         startY = y;
-        if (document.getElementById('snapToGrid').checked) {
+        if (manualTool === 'lasso') {
+          lassoPoints = [{ x, y }];
+          isLassoDrawing = true;
+        } else if (document.getElementById('snapToGrid').checked) {
           const rows = parseInt(document.getElementById('rowsInput').value);
           const cols = parseInt(document.getElementById('colsInput').value);
           const cellWidth = spriteImage.width / cols;
@@ -838,7 +976,6 @@
         let snappedX = Math.round(x / cellWidth) * cellWidth;
         let snappedY = Math.round(y / cellHeight) * cellHeight;
 
-        // Ensure the new dimensions don't go below a minimum size
         if (selectedCorner === 'top-left') {
           newWidth = (sel.x + sel.width) - snappedX;
           newHeight = (sel.y + sel.height) - snappedY;
@@ -857,7 +994,6 @@
           newHeight = snappedY - sel.y;
         }
 
-        // Enforce minimum size and ensure the rectangle stays within bounds
         if (newWidth > 5 && newHeight > 5 && newX >= 0 && newY >= 0 && (newX + newWidth) <= spriteImage.width && (newY + newHeight) <= spriteImage.height) {
           selectedArray[selectedRectIndex] = {
             x: newX,
@@ -868,25 +1004,30 @@
           updateFrame(selectedRectIndex);
         }
         drawCanvas();
-      } else if (isDragging && mode === 'manual' && selectedRectIndex === null) {
-        let endX = x;
-        let endY = y;
-        if (document.getElementById('snapToGrid').checked) {
-          const rows = parseInt(document.getElementById('rowsInput').value);
-          const cols = parseInt(document.getElementById('colsInput').value);
-          const cellWidth = spriteImage.width / cols;
-          const cellHeight = spriteImage.height / rows;
-          endX = Math.round(endX / cellWidth) * cellWidth;
-          endY = Math.round(endY / cellHeight) * cellHeight;
+      } else if (isDragging && mode === 'manual') {
+        if (manualTool === 'lasso' && isLassoDrawing) {
+          lassoPoints.push({ x, y });
+          drawCanvas();
+        } else if (manualTool === 'rectangle') {
+          let endX = x;
+          let endY = y;
+          if (document.getElementById('snapToGrid').checked) {
+            const rows = parseInt(document.getElementById('rowsInput').value);
+            const cols = parseInt(document.getElementById('colsInput').value);
+            const cellWidth = spriteImage.width / cols;
+            const cellHeight = spriteImage.height / rows;
+            endX = Math.round(endX / cellWidth) * cellWidth;
+            endY = Math.round(endY / cellHeight) * cellHeight;
+          }
+          drawCanvas();
+          ctx.save();
+          ctx.translate(panX, panY);
+          ctx.scale(zoom, zoom);
+          ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+          ctx.lineWidth = 2 / zoom;
+          ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+          ctx.restore();
         }
-        drawCanvas();
-        ctx.save();
-        ctx.translate(panX, panY);
-        ctx.scale(zoom, zoom);
-        ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-        ctx.lineWidth = 2 / zoom;
-        ctx.strokeRect(startX, startY, endX - startX, endY - startY);
-        ctx.restore();
       }
     });
 
@@ -910,43 +1051,85 @@
       let endX = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
       let endY = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
 
-      if (document.getElementById('snapToGrid').checked) {
-        const rows = parseInt(document.getElementById('rowsInput').value);
-        const cols = parseInt(document.getElementById('colsInput').value);
-        const cellWidth = spriteImage.width / cols;
-        const cellHeight = spriteImage.height / rows;
-        endX = Math.round(endX / cellWidth) * cellWidth;
-        endY = Math.round(endY / cellHeight) * cellHeight;
-      }
+      if (manualTool === 'lasso') {
+        isLassoDrawing = false;
+        if (lassoPoints.length > 2) {
+          // Find the bounding rectangle of the lasso points
+          const minX = Math.min(...lassoPoints.map(p => p.x));
+          const maxX = Math.max(...lassoPoints.map(p => p.x));
+          const minY = Math.min(...lassoPoints.map(p => p.y));
+          const maxY = Math.max(...lassoPoints.map(p => p.y));
+          const width = maxX - minX;
+          const height = maxY - minY;
 
-      const width = Math.abs(endX - startX);
-      const height = Math.abs(endY - startY);
-      if (width > 5 && height > 5) {
-        const selection = {
-          x: Math.min(startX, endX),
-          y: Math.min(startY, endY),
-          width: width,
-          height: height
-        };
-        manualSelections.push(selection);
+          if (width > 5 && height > 5) {
+            const selection = {
+              x: minX,
+              y: minY,
+              width: width,
+              height: height
+            };
+            manualSelections.push(selection);
 
-        const frameCanvas = document.createElement('canvas');
-        const frameCtx = frameCanvas.getContext('2d');
-        frameCanvas.width = width;
-        frameCanvas.height = height;
-        frameCtx.drawImage(
-          spriteImage,
-          selection.x,
-          selection.y,
-          width,
-          height,
-          0,
-          0,
-          width,
-          height
-        );
-        frames.push(frameCanvas.toDataURL('image/png'));
-        updatePreview();
+            const frameCanvas = document.createElement('canvas');
+            const frameCtx = frameCanvas.getContext('2d');
+            frameCanvas.width = width;
+            frameCanvas.height = height;
+            frameCtx.drawImage(
+              spriteImage,
+              selection.x,
+              selection.y,
+              width,
+              height,
+              0,
+              0,
+              width,
+              height
+            );
+            frames.push(frameCanvas.toDataURL('image/png'));
+            updatePreview();
+          }
+        }
+        lassoPoints = [];
+      } else if (manualTool === 'rectangle') {
+        if (document.getElementById('snapToGrid').checked) {
+          const rows = parseInt(document.getElementById('rowsInput').value);
+          const cols = parseInt(document.getElementById('colsInput').value);
+          const cellWidth = spriteImage.width / cols;
+          const cellHeight = spriteImage.height / rows;
+          endX = Math.round(endX / cellWidth) * cellWidth;
+          endY = Math.round(endY / cellHeight) * cellHeight;
+        }
+
+        const width = Math.abs(endX - startX);
+        const height = Math.abs(endY - startY);
+        if (width > 5 && height > 5) {
+          const selection = {
+            x: Math.min(startX, endX),
+            y: Math.min(startY, endY),
+            width: width,
+            height: height
+          };
+          manualSelections.push(selection);
+
+          const frameCanvas = document.createElement('canvas');
+          const frameCtx = frameCanvas.getContext('2d');
+          frameCanvas.width = width;
+          frameCanvas.height = height;
+          frameCtx.drawImage(
+            spriteImage,
+            selection.x,
+            selection.y,
+            width,
+            height,
+            0,
+            0,
+            width,
+            height
+          );
+          frames.push(frameCanvas.toDataURL('image/png'));
+          updatePreview();
+        }
       }
       isDragging = false;
       drawCanvas();
@@ -1026,16 +1209,47 @@
         frameImg.addEventListener('dragend', () => {
           frameImg.classList.remove('dragging');
         });
-        frameImg.addEventListener('click', () => {
-          frames.splice(index, 1);
-          if (mode === 'manual') manualSelections.splice(index, 1);
-          else autoSelections.splice(index, 1);
-          updatePreview();
-          drawCanvas();
+        frameImg.addEventListener('click', (e) => {
+          if (e.shiftKey) {
+            // Shift + click to open selection window
+            openSelectionWindow(index);
+          } else {
+            // Regular click to delete
+            frames.splice(index, 1);
+            if (mode === 'manual') manualSelections.splice(index, 1);
+            else autoSelections.splice(index, 1);
+            updatePreview();
+            drawCanvas();
+          }
         });
         previewSection.appendChild(frameImg);
       });
       status.textContent = frames.length === 0 ? status.textContent : `Frames: ${frames.length}`;
+    }
+
+    function openSelectionWindow(index) {
+      currentSelectionIndex = index;
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      const rect = selections[index];
+      selectionCanvas.width = rect.width;
+      selectionCanvas.height = rect.height;
+      selectionCtx.drawImage(
+        spriteImage,
+        rect.x,
+        rect.y,
+        rect.width,
+        rect.height,
+        0,
+        0,
+        rect.width,
+        rect.height
+      );
+      selectionWindow.style.display = 'flex';
+    }
+
+    function closeSelectionWindow() {
+      selectionWindow.style.display = 'none';
+      currentSelectionIndex = null;
     }
 
     function exportToBigGifs() {
@@ -1056,7 +1270,6 @@
         }
       }));
 
-      // For now, display the export data as a JSON string
       alert('Exporting to BIG GIFS LAB:\n' + JSON.stringify(exportData, null, 2));
       console.log('Exported frames with metadata:', exportData);
     }
