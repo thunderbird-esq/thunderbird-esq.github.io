@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Thunderbird OS Boot</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     html, body {
       margin: 0;
       padding: 0;
       background: black; /* Fallback background */
       color: #0ff; /* Teal like SGI screens */
-      font-family: 'Courier New', monospace;
+      font-family: 'VT323', monospace; /* Terminal font */
       font-size: 14px;
       overflow: hidden;
       height: 100vh;
@@ -37,7 +38,7 @@
     .start-screen button {
       padding: 12px 24px;
       font-size: 16px;
-      font-family: 'Courier New', monospace;
+      font-family: 'VT323', monospace;
       background: #000;
       border: 2px solid #0ff;
       color: #0ff;
@@ -49,14 +50,14 @@
       opacity: 0;
       transition: opacity 1s ease-in-out;
       display: none;
-      text-align: left; /* Align left for precise positioning */
+      text-align: left;
       color: #0ff;
-      font-size: 24px; /* Scaled up for 1024x1024 */
+      font-size: 10px; /* Set to 10px */
       position: absolute;
-      top: 10px; /* 10px from the top */
-      left: 10px; /* 10px from the left */
-      width: calc(100% - 20px); /* Account for left padding */
-      max-height: calc(100% - 20px); /* Account for top padding */
+      top: 22px; /* 12px border + 10px buffer */
+      left: 22px; /* 12px border + 10px buffer */
+      width: calc(100% - 44px); /* Account for left and right padding */
+      max-height: calc(100% - 44px); /* Account for top and bottom padding */
       overflow: hidden;
     }
     .boot-text .ok { color: #0f0; }
@@ -64,7 +65,7 @@
     .fsv-screen {
       display: none;
       color: #0ff;
-      font-family: 'Courier New', monospace;
+      font-family: 'VT323', monospace;
       text-align: center;
       position: absolute;
       top: 50%;
@@ -136,10 +137,10 @@
       "Reticulating splines... <span class='ok'>[OK]</span>",
       "Stabilizing voltage envelope... <span class='ok'>[OK]</span>",
       "Initializing THUNDERBIRD OS...",
-      "Mapping virtual memory segments... <span class='ok'>[OK]</span>", // Added
-      "Calibrating temporal buffers... <span class='ok'>[OK]</span>", // Added
-      "Syncing with orbital relays... <span class='ok'>[OK]</span>", // Added
-      "Finalizing system integrity check... <span class='ok'>[OK]</span>" // Added
+      "Mapping virtual memory segments... <span class='ok'>[OK]</span>",
+      "Calibrating temporal buffers... <span class='ok'>[OK]</span>",
+      "Syncing with orbital relays... <span class='ok'>[OK]</span>",
+      "Finalizing system integrity check... <span class='ok'>[OK]</span>"
     ];
 
     let i = 0;
