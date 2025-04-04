@@ -13,38 +13,57 @@
       font-family: monospace;
       font-size: 14px;
       height: 100vh;
+      overflow: hidden;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: auto;
+      flex-direction: row;
     }
     .container {
-      width: 1024px;
-      height: 1024px;
-      background: #222;
-      border: 2px solid #0ff;
-      padding: 20px;
-      box-sizing: border-box;
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 300px;
+      background: #111;
+      border-right: 2px solid #0ff;
+      padding: 10px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .main-content {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      overflow: hidden;
+    }
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 10px;
       overflow: auto;
+      gap: 20px;
+    }
+    .preview-section {
+      width: 200px;
+      background: #111;
+      border-left: 2px solid #0ff;
+      padding: 10px;
+      overflow-y: auto;
+      flex-shrink: 0;
     }
     h1 {
-      margin: 0 0 20px;
-      font-size: 24px;
+      margin: 0 0 10px;
+      font-size: 20px;
       text-align: center;
-    }
-    .controls {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 20px;
-      width: 100%;
-      max-width: 600px;
     }
     .mode-toggle {
       margin-bottom: 10px;
+      text-align: center;
     }
     .mode-toggle label {
       margin: 0 5px;
@@ -54,10 +73,9 @@
     }
     details {
       margin: 10px 0;
-      width: 100%;
     }
     summary {
-      background: #111;
+      background: #222;
       padding: 5px;
       cursor: pointer;
       border: 1px solid #0ff;
@@ -66,7 +84,7 @@
       display: none;
       margin: 10px 0;
       padding: 10px;
-      background: #111;
+      background: #222;
       border: 1px solid #0ff;
     }
     .control-group {
@@ -88,7 +106,7 @@
       padding: 5px;
       margin: 0 5px;
     }
-    .controls input[type="file"] {
+    .sidebar input[type="file"] {
       display: block;
       margin: 10px auto;
       color: #0ff;
@@ -96,19 +114,14 @@
       border: 1px solid #0ff;
       padding: 5px;
     }
-    .controls button {
+    .sidebar button {
       background: #111;
       border: 1px solid #0ff;
       color: #0ff;
       padding: 5px 10px;
       cursor: pointer;
       margin: 5px;
-    }
-    .canvas-container {
-      position: relative;
-      margin-bottom: 20px;
-      display: flex;
-      gap: 20px;
+      width: 100%;
     }
     canvas {
       border: 1px solid #0ff;
@@ -121,17 +134,21 @@
       max-height: 400px;
     }
     .status {
-      margin-bottom: 10px;
+      text-align: center;
+      padding: 5px;
+      background: #222;
+      border-bottom: 1px solid #0ff;
+    }
+    .preview-section h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
       text-align: center;
     }
-    .preview-section {
+    .preview-section .frames {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
       gap: 10px;
-      margin-bottom: 20px;
-      max-height: 200px;
-      overflow-y: auto;
+      justify-content: center;
     }
     .preview-section img {
       border: 1px solid #0ff;
@@ -147,6 +164,9 @@
     }
     .action-section {
       text-align: center;
+      padding: 10px;
+      background: #222;
+      border-top: 1px solid #0ff;
     }
     .action-section button {
       background: #111;
@@ -155,12 +175,33 @@
       padding: 5px 10px;
       cursor: pointer;
     }
+    @media (max-width: 1024px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 2px solid #0ff;
+      }
+      .workspace {
+        flex-direction: column;
+        align-items: center;
+      }
+      .preview-section {
+        width: 100%;
+        height: 200px;
+        border-left: none;
+        border-top: 2px solid #0ff;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>SPRITE SLICER</h1>
-    <div class="controls">
+    <div class="sidebar">
+      <h1>SPRITE SLICER</h1>
       <div class="mode-toggle">
         <label><input type="radio" name="mode" value="auto" checked onclick="toggleMode()"> Auto Mode</label>
         <label><input type="radio" name="mode" value="refine" onclick="toggleMode()"> Refine Mode</label>
@@ -231,14 +272,19 @@
         </div>
       </div>
     </div>
-    <div class="status" id="status">Frames: 0</div>
-    <div class="canvas-container">
-      <canvas id="spriteCanvas"></canvas>
-      <canvas id="edgeCanvas"></canvas>
+    <div class="main-content">
+      <div class="status" id="status">Frames: 0</div>
+      <div class="workspace">
+        <canvas id="spriteCanvas"></canvas>
+        <canvas id="edgeCanvas"></canvas>
+      </div>
+      <div class="action-section">
+        <button onclick="exportToBigGifs()">Export to BIG GIFS LAB</button>
+      </div>
     </div>
-    <div class="preview-section" id="previewSection"></div>
-    <div class="action-section">
-      <button onclick="exportToBigGifs()">Export to BIG GIFS LAB</button>
+    <div class="preview-section">
+      <h2>Preview Frames</h2>
+      <div class="frames" id="previewSection"></div>
     </div>
   </div>
 
@@ -686,27 +732,27 @@
       if (mode === 'refine') {
         // Check if a corner handle is clicked
         const handleSize = 8 / zoom;
+        selectedCorner = null;
+        selectedRectIndex = null;
         for (let i = 0; i < autoSelections.length; i++) {
           const sel = autoSelections[i];
           const corners = [
-            { x: sel.x, y: sel.y, corner: 'top-left' },
-            { x: sel.x + sel.width, y: sel.y, corner: 'top-right' },
-            { x: sel.x, y: sel.y + sel.height, corner: 'bottom-left' },
-            { x: sel.x + sel.width, y: sel.y + sel.height, corner: 'bottom-right' }
+            { corner: 'top-left', x: sel.x, y: sel.y },
+            { corner: 'top-right', x: sel.x + sel.width, y: sel.y },
+            { corner: 'bottom-left', x: sel.x, y: sel.y + sel.height },
+            { corner: 'bottom-right', x: sel.x + sel.width, y: sel.y + sel.height }
           ];
           for (const corner of corners) {
-            if (
-              x >= corner.x - handleSize / 2 &&
-              x <= corner.x + handleSize / 2 &&
-              y >= corner.y - handleSize / 2 &&
-              y <= corner.y + handleSize / 2
-            ) {
+            const distX = x - corner.x;
+            const distY = y - corner.y;
+            if (Math.abs(distX) <= handleSize / 2 && Math.abs(distY) <= handleSize / 2) {
               selectedCorner = corner.corner;
               selectedRectIndex = i;
               isDragging = true;
-              return;
+              break;
             }
           }
+          if (isDragging) break;
         }
       } else if (mode === 'manual') {
         startX = x;
@@ -739,7 +785,7 @@
         return;
       }
 
-      if (isDragging && mode === 'refine' && selectedRectIndex !== null) {
+      if (isDragging && mode === 'refine' && selectedRectIndex !== null && selectedCorner !== null) {
         const sel = autoSelections[selectedRectIndex];
         let newX = sel.x;
         let newY = sel.y;
@@ -753,17 +799,18 @@
         let snappedX = Math.round(x / cellWidth) * cellWidth;
         let snappedY = Math.round(y / cellHeight) * cellHeight;
 
+        // Ensure the new dimensions don't go below a minimum size
         if (selectedCorner === 'top-left') {
-          newWidth = sel.x + sel.width - snappedX;
-          newHeight = sel.y + sel.height - snappedY;
+          newWidth = (sel.x + sel.width) - snappedX;
+          newHeight = (sel.y + sel.height) - snappedY;
           newX = snappedX;
           newY = snappedY;
         } else if (selectedCorner === 'top-right') {
           newWidth = snappedX - sel.x;
-          newHeight = sel.y + sel.height - snappedY;
+          newHeight = (sel.y + sel.height) - snappedY;
           newY = snappedY;
         } else if (selectedCorner === 'bottom-left') {
-          newWidth = sel.x + sel.width - snappedX;
+          newWidth = (sel.x + sel.width) - snappedX;
           newHeight = snappedY - sel.y;
           newX = snappedX;
         } else if (selectedCorner === 'bottom-right') {
@@ -771,7 +818,8 @@
           newHeight = snappedY - sel.y;
         }
 
-        if (newWidth > 5 && newHeight > 5) {
+        // Enforce minimum size and ensure the rectangle stays within bounds
+        if (newWidth > 5 && newHeight > 5 && newX >= 0 && newY >= 0 && (newX + newWidth) <= spriteImage.width && (newY + newHeight) <= spriteImage.height) {
           autoSelections[selectedRectIndex] = {
             x: newX,
             y: newY,
