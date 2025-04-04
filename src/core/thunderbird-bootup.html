@@ -90,7 +90,7 @@
     </div>
   </div>
 
-  <audio id="fanSound" src="../../assets/audio/fan-hum.mp3" loop></audio>
+  <audio id="fanSound" src="../../assets/audio/fan-hum.mp3"></audio>
   <audio id="clicksSound" src="../../assets/audio/floppy-clicks.mp3" loop></audio>
   <audio id="bootBeep" src="../../assets/audio/startup-beep.mp3"></audio>
 
@@ -122,7 +122,16 @@
       fanSound.onerror = () => console.log('Fan sound failed to load');
       clicksSound.onerror = () => console.log('Clicks sound failed to load');
       bootBeep.onerror = () => console.log('Boot beep failed to load');
+
+      // Start fan sound and set up seamless looping
       fanSound.play();
+      fanSound.addEventListener('timeupdate', function() {
+        // If the audio is within 0.1 seconds of the end, reset to the start
+        if (fanSound.duration - fanSound.currentTime <= 0.1) {
+          fanSound.currentTime = 0;
+        }
+      });
+
       clicksSound.play();
       bootBeep.play();
 
@@ -177,7 +186,7 @@
             stageIndex++;
             status.textContent = stages[stageIndex];
           }
-          fan.volume = 0.3 + Math.random() * 0.2; // Keep adjusting volume to ensure playback
+          fan.volume = 0.3 + Math.random() * 0.2;
           clicks.volume = 0.2 + Math.random() * 0.1;
         }
       }, 100);
