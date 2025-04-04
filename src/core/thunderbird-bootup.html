@@ -7,19 +7,18 @@
     html, body {
       margin: 0;
       padding: 0;
-      background-color: black;
+      background: url('../../assets/images/nova-background.png') no-repeat center center fixed;
+      background-size: cover;
       color: #0ff; /* Teal like SGI screens */
       font-family: 'Courier New', monospace;
       font-size: 14px;
       overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     .start-screen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: black;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -35,40 +34,21 @@
       color: #0ff;
       cursor: pointer;
     }
-    .boot-logo {
-      text-align: right;
-      padding-right: 60px;
-      margin-top: 80px;
-      display: none;
-    }
-    .boot-logo img {
-      image-rendering: pixelated;
-      width: 320px;
-      height: 400px;
-    }
     .boot-text {
-      padding: 20px 40px;
       white-space: pre-wrap;
       line-height: 1.5em;
       opacity: 0;
       transition: opacity 1s ease-in-out;
       display: none;
-      position: absolute;
-      top: 120px;
-      left: 40px;
+      text-align: center;
       color: #0ff;
     }
     .boot-text .ok { color: #0f0; }
     .boot-text .fail { color: #f00; }
     .fsv-screen {
       display: none;
-      background: url('../../assets/images/blue-texture.png'); /* SGI-like gradient */
-      background-size: cover;
       color: #0ff;
       font-family: 'Courier New', monospace;
-      padding: 40px;
-      height: 100vh;
-      box-sizing: border-box;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -95,25 +75,17 @@
       background: #0ff;
       transition: width 1s ease-in-out;
     }
-    .fsv-logo {
-      margin-top: 20px;
-      width: 100px;
-      height: 100px;
-    }
     .fsv-text {
       font-size: 12px;
       color: #0ff;
       text-shadow: 1px 1px 0 #000;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <div class="start-screen" id="startScreen">
     <button onclick="startBoot()">Power On</button>
-  </div>
-
-  <div class="boot-logo" id="bootLogo">
-    <img src="../../assets/images/nova-logo.png" alt="Thunderbird Logo" />
   </div>
 
   <pre class="boot-text" id="bootText"></pre>
@@ -126,7 +98,6 @@
       </div>
     </div>
     <p class="fsv-text">unlocking tomorrow's tombs</p>
-    <img class="fsv-logo" src="../../assets/images/nova-logo.png" alt="Thunderbird Logo" />
   </div>
 
   <audio id="fanSound" src="../../assets/audio/fan-hum.mp3" loop></audio>
@@ -151,7 +122,6 @@
 
     function startBoot() {
       document.getElementById('startScreen').style.display = 'none';
-      document.getElementById('bootLogo').style.display = 'block';
       document.getElementById('bootText').style.display = 'block';
 
       const fanSound = document.getElementById('fanSound');
@@ -178,7 +148,6 @@
         setTimeout(showNextLine, 2000 + Math.random() * 1000);
       } else {
         setTimeout(() => {
-          document.getElementById('bootLogo').style.display = 'none';
           bootText.style.display = 'none';
           document.getElementById('fsvScreen').style.display = 'flex';
           simulateFSVLoading();
@@ -202,7 +171,7 @@
           message.textContent = "Launching BIG GIFS...";
           setTimeout(() => {
             window.location.href = '../tools/big-gifs/big-gifs.html';
-          }, 2000); // Show message for 2 seconds before redirect
+          }, 2000);
         } else {
           bar.style.width = progress + "%";
           fan.volume = 0.3 + Math.random() * 0.2;
