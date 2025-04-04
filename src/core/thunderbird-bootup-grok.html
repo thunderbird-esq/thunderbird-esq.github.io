@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thunderbird OS Boot</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: #0ff;
+      font-family: monospace;
+      font-size: 14px;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      width: 1024px;
+      height: 1024px;
+      background: url('../../assets/images/nova-background.png') no-repeat center center;
+      background-size: 1024px 1024px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .start-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 1000;
+    }
+    .start-screen button {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-family: monospace;
+      background: #000;
+      border: 2px solid #0ff;
+      color: #0ff;
+      cursor: pointer;
+    }
+    .boot-text {
+      white-space: pre-wrap;
+      line-height: 1.5em;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      display: none;
+      text-align: left;
+      color: #808080; /* Grey */
+      font-size: 16px;
+      position: absolute;
+      top: 232px; /* Moved up 50px from 282px */
+      left: 147px;
+      width: calc(100% - 169px);
+      max-height: calc(100% - 254px);
+      overflow: hidden;
+    }
+    .boot-text .ok { color: #0f0; }
+    .boot-text .fail { color: #f00; }
+    .progress-section {
+      position: absolute;
+      top: 232px; /* Will adjust dynamically */
+      left: 147px;
+      width: calc(100% - 169px);
+      text-align: left;
+      color: #0ff;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    #progressBar {
+      color: #FFC107; /* Yellow for ASCII triangles */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="start-screen" id="startScreen">
+      <button onclick="startBoot()">Power On</button>
+    </div>
+
+    <pre class="boot-text" id="bootText"></pre>
+    <div class="progress-section" id="progressSection" style="display: none;">
+      <pre id="progressHeader">THUNDERBIRD OS v1.0.0 Booting...</pre>
+      <pre id="progressBar"></pre>
+      <pre id="status">Initializing...</pre>
+    </div>
+  </div>
+
+  <audio id="fanSound" src="../../assets/audio/fan-hum.mp3" loop></audio>
+  <audio id="clicksSound" src="../../assets/audio/floppy-clicks.mp3" loop></audio>
+  <audio id="bootBeep" src="../../assets/audio/startup-beep.mp3"></audio>
+
+  <script>
+    const bootLines = [
+      "Running diagnostics... <span class='ok'>[OK]</span>",
+      "Testing memory... <span class='ok'>[OK]</span>",
+      "Booting from ROM BIOS... <span class='ok'>[OK]</span>",
+      "Checking floppy disk drives... <span class='fail'>[FAIL - No floppy detected]</span>",
+      "Probing PCI buses... <span class='ok'>[OK]</span>",
+      "Loading quantum cache... <span class='ok'>[OK]</span>",
+      "Verifying hexadecimal transport matrix... <span class='ok'>[OK]</span>",
+      "Initializing THUNDERBIRD OS... <span class='ok'>[OK]</span>",
+      "Syncing with orbital relays... <span class='ok'>[OK]</span>",
+      "Finalizing system integrity check... <span class='ok'>[OK]</span>"
+    ];
+
+    let i = 0;
+
+    function startBoot() {
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('bootText').style.display = 'block';
+
+      const fanSound = document.getElementById('fanSound');
+      const clicksSound = document.getElementById('clicksSound');
+      const bootBeep = document.getElementById('bootBeep');
+      fanSound.volume = 0.4;
+      clicksSound.volume = 0.3;
+      fanSound.onerror = () => console.log('Fan sound failed to load');
+      clicksSound.onerror = () => console.log('Clicks sound failed to load');
+      bootBeep.onerror = () => console.log('Boot beep failed to load');
+      fanSound.play();
+      clicksSound.play();
+      bootBeep.play();
+
+      showNextLine();
+    }
+
+    function showNextLine() {
+      const bootText = document.getElementById('bootText');
+      if (i < bootLines.length) {
+        bootText.innerHTML += bootLines[i] + '\n';
+        bootText.style.opacity = 1;
+        i++;
+        setTimeout(showNextLine, 2600); // 2.6 seconds per line
+      } else {
+        // Calculate the height of the boot text to position the progress bar
+        const bootTextHeight = bootText.offsetHeight;
+        const progressSection = document.getElementById('progressSection');
+        progressSection.style.top = `${232 + bootTextHeight + 10}px`; // 10px separation
+        progressSection.style.display = 'block';
+        simulateLoading();
+      }
+    }
+
+    function simulateLoading() {
+      let progress = 0;
+      const bar = document.getElementById('progressBar');
+      const status = document.getElementById('status');
+      const fan = document.getElementById('fanSound');
+      const clicks = document.getElementById('clicksSound');
+      const stages = [
+        'Initializing...',
+        'Connecting to THUNDERBIRD Network...',
+        'Fetching Messages...',
+        'Boot Complete!'
+      ];
+      let stageIndex = 0;
+
+      const interval = setInterval(() => {
+        if (progress >= 100) {
+          bar.textContent = '[△△△△△△△△△△△△△△△△△△△△] 100%'; // 20 triangles at 100%
+          clearInterval(interval);
+          fan.pause();
+          clicks.pause();
+          status.textContent = 'Boot Complete!';
+          setTimeout(() => {
+            window.location.href = '../tools/big-gifs/big-gifs.html';
+          }, 2000);
+        } else {
+          progress += 2; // 2% every 100ms, 5 seconds total
+          const triangles = Math.floor(progress / 5); // 20 triangles total (100% / 5)
+          const spaces = 20 - triangles; // Remaining spaces to fill 20 slots
+          bar.textContent = '[' + '△'.repeat(triangles) + ' '.repeat(spaces) + '] ' + Math.round(progress) + '%';
+          if (progress % 25 === 0 && stageIndex < stages.length - 1) {
+            stageIndex++;
+            status.textContent = stages[stageIndex];
+          }
+          fan.volume = 0.3 + Math.random() * 0.2;
+          clicks.volume = 0.2 + Math.random() * 0.1;
+        }
+      }, 100);
+    }
+  </script>
+</body>
+</html>
