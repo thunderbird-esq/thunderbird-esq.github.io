@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SPRITE SLICER - Thunderbird OS</title>
+  <script async src="../../../lib/opencv.js" onload="onOpenCvReady()"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: #0ff;
+      font-family: monospace;
+      font-size: 14px;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: auto;
+    }
+    .container {
+      width: 1024px;
+      height: 1024px;
+      background: #222;
+      border: 2px solid #0ff;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: auto;
+    }
+    h1 {
+      margin: 0 0 20px;
+      font-size: 24px;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .mode-toggle {
+      margin-bottom: 10px;
+    }
+    .mode-toggle label {
+      margin: 0 5px;
+    }
+    .mode-toggle input[type="radio"] {
+      margin: 0 2px;
+    }
+    .auto-controls, .manual-controls {
+      display: none;
+      margin: 10px 0;
+    }
+    .auto-controls input[type="range"], .manual-controls input[type="range"] {
+      width: 150px;
+      margin: 0 5px;
+    }
+    .controls input[type="file"] {
+      display: block;
+      margin: 10px auto;
+      color: #0ff;
+      background: #111;
+      border: 1px solid #0ff;
+      padding: 5px;
+    }
+    .controls button {
+      background: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+      padding: 5px 10px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .canvas-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    canvas {
+      border: 1px solid #0ff;
+      max-width: 100%;
+      max-height: 400px;
+    }
+    .status {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .preview-section {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .preview-section img {
+      border: 1px solid #0ff;
+      max-width: 100px;
+      max-height: 100px;
+      cursor: pointer;
+    }
+    .preview-section img:hover {
+      border-color: #f00;
+    }
+    .preview-section img.dragging {
+      opacity: 0.5;
+    }
+    .action-section {
+      text-align: center;
+    }
+    .action-section button {
+      background: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SPRITE SLICER</h1>
+    <div class="controls">
+      <div class="mode-toggle">
+        <label><input type="radio" name="mode" value="auto" checked onclick="toggleMode()"> Auto Mode</label>
+        <label><input type="radio" name="mode" value="manual" onclick="toggleMode()"> Manual Mode</label>
+      </div>
+      <input type="file" id="spriteSheetInput" accept="image/*">
+      <div class="auto-controls" id="autoControls">
+        <label>Edge Threshold 1: <input type="range" id="threshold1" min="0" max="255" value="50" oninput="autoSlice()"></label>
+        <label>Edge Threshold 2: <input type="range" id="threshold2" min="0" max="255" value="150" oninput="autoSlice()"></label>
+      </div>
+      <div class="manual-controls" id="manualControls">
+        <label>Zoom: <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1" oninput="updateZoom()"></label>
+        <button onclick="undoLastSelection()">Undo Last Selection</button>
+      </div>
+    </div>
+    <div class="status" id="status">Frames: 0</div>
+    <div class="canvas-container">
+      <canvas id="spriteCanvas"></canvas>
+    </div>
+    <div class="preview-section" id="previewSection"></div>
+    <div class="action-section">
+      <button onclick="exportToBigGifs()">Export to BIG GIFS LAB</button>
+    </div>
+  </div>
+
+  <script>
+    let mode = 'auto';
+    let spriteImage = null;
+    let frames = [];
+    let manualSelections = [];
+    let autoSelections = [];
+    let isDragging = false;
+    let startX, startY;
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    let isPanning = false;
+    let lastPanX, lastPanY;
+    let opencvReady = false;
+    const canvas = document.getElementById('spriteCanvas');
+    const ctx = canvas.getContext('2d');
+    const previewSection = document.getElementById('previewSection');
+    const status = document.getElementById('status');
+
+    function onOpenCvReady() {
+      opencvReady = true;
+      console.log('OpenCV.js is ready');
+    }
+
+    function toggleMode() {
+      mode = document.querySelector('input[name="mode"]:checked').value;
+      document.getElementById('autoControls').style.display = mode === 'auto' ? 'block' : 'none';
+      document.getElementById('manualControls').style.display = mode === 'manual' ? 'block' : 'none';
+      manualSelections = [];
+      frames = [];
+      zoom = 1;
+      panX = 0;
+      panY = 0;
+      document.getElementById('zoomSlider').value = 1;
+      updatePreview();
+      if (spriteImage) {
+        if (mode === 'auto') autoSlice();
+        drawCanvas();
+      }
+    }
+
+    document.getElementById('spriteSheetInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        spriteImage = new Image();
+        spriteImage.src = URL.createObjectURL(file);
+        spriteImage.onload = () => {
+          canvas.width = spriteImage.width;
+          canvas.height = spriteImage.height;
+          zoom = 1;
+          panX = 0;
+          panY = 0;
+          drawCanvas();
+          if (mode === 'auto' && opencvReady) autoSlice();
+        };
+      }
+    });
+
+    function autoSlice() {
+      if (!spriteImage || !opencvReady) return;
+
+      // Create a temporary canvas to process the image
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = spriteImage.width;
+      tempCanvas.height = spriteImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(spriteImage, 0, 0);
+
+      // Convert canvas to OpenCV Mat
+      const src = cv.imread(tempCanvas);
+      const gray = new cv.Mat();
+      const edges = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      cv.Canny(gray, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+
+      // Find contours
+      const contours = new cv.MatVector();
+      const hierarchy = new cv.Mat();
+      cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      // Process contours to find bounding rectangles
+      autoSelections = [];
+      frames = [];
+      for (let i = 0; i < contours.size(); i++) {
+        const contour = contours.get(i);
+        const rect = cv.boundingRect(contour);
+        if (rect.width > 10 && rect.height > 10) { // Filter out small noise
+          autoSelections.push(rect);
+          const frameCanvas = document.createElement('canvas');
+          const frameCtx = frameCanvas.getContext('2d');
+          frameCanvas.width = rect.width;
+          frameCanvas.height = rect.height;
+          frameCtx.drawImage(
+            spriteImage,
+            rect.x,
+            rect.y,
+            rect.width,
+            rect.height,
+            0,
+            0,
+            rect.width,
+            rect.height
+          );
+          frames.push(frameCanvas.toDataURL('image/png'));
+        }
+      }
+
+      // Clean up
+      src.delete();
+      gray.delete();
+      edges.delete();
+      contours.delete();
+      hierarchy.delete();
+
+      updatePreview();
+      drawCanvas();
+    }
+
+    function updateZoom() {
+      zoom = parseFloat(document.getElementById('zoomSlider').value);
+      drawCanvas();
+    }
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (spriteImage) {
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+        ctx.drawImage(spriteImage, 0, 0);
+        ctx.restore();
+      }
+
+      if (mode === 'auto') {
+        // Draw auto-detected selections
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+        autoSelections.forEach((selection, index) => {
+          ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+          ctx.lineWidth = 2 / zoom;
+          ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
+          ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+          ctx.font = `${12 / zoom}px monospace`;
+          ctx.fillText(`Frame ${index + 1}`, selection.x + 5 / zoom, selection.y + 15 / zoom);
+        });
+        ctx.restore();
+      } else {
+        // Draw manual selections with bounding boxes and labels
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+        manualSelections.forEach((selection, index) => {
+          ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+          ctx.lineWidth = 2 / zoom;
+          ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
+          ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+          ctx.font = `${12 / zoom}px monospace`;
+          ctx.fillText(`Frame ${index + 1}`, selection.x + 5 / zoom, selection.y + 15 / zoom);
+        });
+        ctx.restore();
+      }
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (mode !== 'manual' || !spriteImage) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+
+      if (e.altKey) { // Alt + click to pan
+        isPanning = true;
+        lastPanX = e.clientX;
+        lastPanY = e.clientY;
+      } else {
+        startX = x;
+        startY = y;
+        isDragging = true;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+
+      if (isPanning) {
+        const dx = e.clientX - lastPanX;
+        const dy = e.clientY - lastPanY;
+        panX += dx;
+        panY += dy;
+        lastPanX = e.clientX;
+        lastPanY = e.clientY;
+        drawCanvas();
+      } else if (isDragging && mode === 'manual') {
+        drawCanvas();
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+        ctx.lineWidth = 2 / zoom;
+        ctx.strokeRect(startX, startY, x - startX, y - startY);
+        ctx.restore();
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (isPanning) {
+        isPanning = false;
+        return;
+      }
+      if (!isDragging || mode !== 'manual') return;
+      const rect = canvas.getBoundingClientRect();
+      const endX = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
+      const endY = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+
+      const width = Math.abs(endX - startX);
+      const height = Math.abs(endY - startY);
+      if (width > 5 && height > 5) { // Minimum size to avoid accidental clicks
+        const selection = {
+          x: Math.min(startX, endX),
+          y: Math.min(startY, endY),
+          width: width,
+          height: height
+        };
+        manualSelections.push(selection);
+
+        const frameCanvas = document.createElement('canvas');
+        const frameCtx = frameCanvas.getContext('2d');
+        frameCanvas.width = width;
+        frameCanvas.height = height;
+        frameCtx.drawImage(
+          spriteImage,
+          selection.x,
+          selection.y,
+          width,
+          height,
+          0,
+          0,
+          width,
+          height
+        );
+        frames.push(frameCanvas.toDataURL('image/png'));
+        updatePreview();
+      }
+      isDragging = false;
+      drawCanvas();
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      if (mode !== 'manual' || !spriteImage) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      zoom = Math.max(0.5, Math.min(3, zoom + delta));
+      document.getElementById('zoomSlider').value = zoom;
+      drawCanvas();
+    });
+
+    function undoLastSelection() {
+      if (mode !== 'manual' || manualSelections.length === 0) return;
+      manualSelections.pop();
+      frames.pop();
+      updatePreview();
+      drawCanvas();
+    }
+
+    function updatePreview() {
+      previewSection.innerHTML = '';
+      frames.forEach((frameData, index) => {
+        const frameImg = document.createElement('img');
+        frameImg.src = frameData;
+        frameImg.title = `Frame ${index + 1}`;
+        frameImg.draggable = true;
+        frameImg.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', index);
+          frameImg.classList.add('dragging');
+        });
+        frameImg.addEventListener('dragover', (e) => {
+          e.preventDefault();
+        });
+        frameImg.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+          const toIndex = index;
+          if (fromIndex !== toIndex) {
+            const [movedFrame] = frames.splice(fromIndex, 1);
+            frames.splice(toIndex, 0, movedFrame);
+            if (mode === 'manual') {
+              const [movedSelection] = manualSelections.splice(fromIndex, 1);
+              manualSelections.splice(toIndex, 0, movedSelection);
+            } else {
+              const [movedSelection] = autoSelections.splice(fromIndex, 1);
+              autoSelections.splice(toIndex, 0, movedSelection);
+            }
+            updatePreview();
+            drawCanvas();
+          }
+        });
+        frameImg.addEventListener('dragend', () => {
+          frameImg.classList.remove('dragging');
+        });
+        frameImg.addEventListener('click', () => {
+          frames.splice(index, 1);
+          if (mode === 'manual') manualSelections.splice(index, 1);
+          else autoSelections.splice(index, 1);
+          updatePreview();
+          drawCanvas();
+        });
+        previewSection.appendChild(frameImg);
+      });
+      status.textContent = `Frames: ${frames.length}`;
+    }
+
+    function exportToBigGifs() {
+      alert('Export to BIG GIFS LAB functionality coming soon!');
+    }
+  </script>
+</body>
+</html>
