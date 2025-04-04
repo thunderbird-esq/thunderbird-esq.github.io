@@ -7,9 +7,9 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: black; /* Fallback background */
-      color: #0ff; /* Teal like SGI screens */
-      font-family: 'Courier New', monospace;
+      background: black;
+      color: #0ff;
+      font-family: monospace;
       font-size: 14px;
       overflow: hidden;
       height: 100vh;
@@ -37,7 +37,7 @@
     .start-screen button {
       padding: 12px 24px;
       font-size: 16px;
-      font-family: 'Courier New', monospace;
+      font-family: monospace;
       background: #000;
       border: 2px solid #0ff;
       color: #0ff;
@@ -49,55 +49,30 @@
       opacity: 0;
       transition: opacity 1s ease-in-out;
       display: none;
-      text-align: left; /* Align left for precise positioning */
-      color: #0ff;
-      font-size: 24px; /* Scaled up for 1024x1024 */
+      text-align: left;
+      color: #808080; /* Grey */
+      font-size: 16px;
       position: absolute;
-      top: 10px; /* 10px from the top */
-      left: 10px; /* 10px from the left */
-      width: calc(100% - 20px); /* Account for left padding */
-      max-height: calc(100% - 20px); /* Account for top padding */
+      top: 232px;
+      left: 147px;
+      width: calc(100% - 169px);
+      max-height: calc(100% - 254px);
       overflow: hidden;
     }
     .boot-text .ok { color: #0f0; }
     .boot-text .fail { color: #f00; }
-    .fsv-screen {
-      display: none;
-      color: #0ff;
-      font-family: 'Courier New', monospace;
-      text-align: center;
+    .progress-section {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-    }
-    .dialog-box {
-      background: #222;
-      border: 2px solid #0ff;
-      padding: 20px;
-      width: 300px;
-      box-shadow: 2px 2px 0 #0ff;
-      margin: 0 auto;
-    }
-    .progress-bar {
-      width: 80%;
-      height: 20px;
-      background-color: #111;
-      border: 1px solid #0ff;
-      margin: 20px auto 0;
-    }
-    .progress-bar-inner {
-      height: 100%;
-      width: 0%;
-      background: #0ff;
-      transition: width 1s ease-in-out;
-    }
-    .fsv-text {
-      font-size: 12px;
+      top: 232px;
+      left: 147px;
+      width: calc(100% - 169px);
+      text-align: left;
       color: #0ff;
-      text-shadow: 1px 1px 0 #000;
-      margin-top: 20px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    #progressBar {
+      color: #FFC107; /* Yellow for ASCII triangles */
     }
   </style>
 </head>
@@ -108,19 +83,15 @@
     </div>
 
     <pre class="boot-text" id="bootText"></pre>
-
-    <div class="fsv-screen" id="fsvScreen">
-      <div class="dialog-box">
-        <h2 id="fsvMessage">Starting up the system...</h2>
-        <div class="progress-bar">
-          <div class="progress-bar-inner" id="progressBar"></div>
-        </div>
-      </div>
-      <p class="fsv-text">unlocking tomorrow's tombs</p>
+    <div class="progress-section" id="progressSection" style="display: none;">
+      <pre id="progressHeader">THUNDERBIRD OS v1.0.0 Booting...</pre>
+      <pre id="progressBar"></pre>
+      <pre id="status">Initializing...</pre>
     </div>
   </div>
 
-  <audio id="fanSound" src="../../assets/audio/fan-hum.mp3" loop></audio>
+  <audio id="fanSound1" src="../../assets/audio/fan-hum.mp3"></audio>
+  <audio id="fanSound2" src="../../assets/audio/fan-hum-2.mp3"></audio>
   <audio id="clicksSound" src="../../assets/audio/floppy-clicks.mp3" loop></audio>
   <audio id="bootBeep" src="../../assets/audio/startup-beep.mp3"></audio>
 
@@ -133,13 +104,9 @@
       "Probing PCI buses... <span class='ok'>[OK]</span>",
       "Loading quantum cache... <span class='ok'>[OK]</span>",
       "Verifying hexadecimal transport matrix... <span class='ok'>[OK]</span>",
-      "Reticulating splines... <span class='ok'>[OK]</span>",
-      "Stabilizing voltage envelope... <span class='ok'>[OK]</span>",
-      "Initializing THUNDERBIRD OS...",
-      "Mapping virtual memory segments... <span class='ok'>[OK]</span>", // Added
-      "Calibrating temporal buffers... <span class='ok'>[OK]</span>", // Added
-      "Syncing with orbital relays... <span class='ok'>[OK]</span>", // Added
-      "Finalizing system integrity check... <span class='ok'>[OK]</span>" // Added
+      "Initializing THUNDERBIRD OS... <span class='ok'>[OK]</span>",
+      "Syncing with orbital relays... <span class='ok'>[OK]</span>",
+      "Finalizing system integrity check... <span class='ok'>[OK]</span>"
     ];
 
     let i = 0;
@@ -148,15 +115,89 @@
       document.getElementById('startScreen').style.display = 'none';
       document.getElementById('bootText').style.display = 'block';
 
-      const fanSound = document.getElementById('fanSound');
+      const fanSound1 = document.getElementById('fanSound1');
+      const fanSound2 = document.getElementById('fanSound2');
       const clicksSound = document.getElementById('clicksSound');
       const bootBeep = document.getElementById('bootBeep');
-      fanSound.volume = 0.4;
+
+      fanSound1.volume = 0.4;
+      fanSound2.volume = 0;
       clicksSound.volume = 0.3;
-      fanSound.onerror = () => console.log('Fan sound failed to load');
+
+      fanSound1.onerror = () => console.log('Fan sound 1 failed to load');
+      fanSound2.onerror = () => console.log('Fan sound 2 failed to load');
       clicksSound.onerror = () => console.log('Clicks sound failed to load');
       bootBeep.onerror = () => console.log('Boot beep failed to load');
-      fanSound.play();
+
+      // Start the first fan sound
+      fanSound1.play();
+
+      // Crossfade logic
+      const crossfadeDuration = 2000; // 2 seconds for crossfade
+      let isFirstPlaying = true;
+
+      function crossfade() {
+        if (isFirstPlaying) {
+          // Fade out fanSound1, fade in fanSound2
+          fanSound2.currentTime = 0;
+          fanSound2.play();
+          fadeOut(fanSound1, crossfadeDuration);
+          fadeIn(fanSound2, crossfadeDuration);
+        } else {
+          // Fade out fanSound2, fade in fanSound1
+          fanSound1.currentTime = 0;
+          fanSound1.play();
+          fadeOut(fanSound2, crossfadeDuration);
+          fadeIn(fanSound1, crossfadeDuration);
+        }
+        isFirstPlaying = !isFirstPlaying;
+      }
+
+      // Monitor the first audio to trigger crossfade
+      fanSound1.addEventListener('timeupdate', function() {
+        if (fanSound1.duration - fanSound1.currentTime <= crossfadeDuration / 1000) {
+          crossfade();
+        }
+      });
+
+      // Monitor the second audio to trigger crossfade
+      fanSound2.addEventListener('timeupdate', function() {
+        if (fanSound2.duration - fanSound2.currentTime <= crossfadeDuration / 1000) {
+          crossfade();
+        }
+      });
+
+      // Fade in function
+      function fadeIn(audio, duration) {
+        let volume = 0;
+        const increment = 0.4 / (duration / 50); // Adjust volume over duration
+        const interval = setInterval(() => {
+          if (volume >= 0.4) {
+            clearInterval(interval);
+            audio.volume = 0.4;
+          } else {
+            volume += increment;
+            audio.volume = Math.min(volume, 0.4);
+          }
+        }, 50);
+      }
+
+      // Fade out function
+      function fadeOut(audio, duration) {
+        let volume = audio.volume;
+        const decrement = volume / (duration / 50);
+        const interval = setInterval(() => {
+          if (volume <= 0) {
+            clearInterval(interval);
+            audio.volume = 0;
+            audio.pause();
+          } else {
+            volume -= decrement;
+            audio.volume = Math.max(volume, 0);
+          }
+        }, 50);
+      }
+
       clicksSound.play();
       bootBeep.play();
 
@@ -169,39 +210,50 @@
         bootText.innerHTML += bootLines[i] + '\n';
         bootText.style.opacity = 1;
         i++;
-        setTimeout(showNextLine, 2000 + Math.random() * 1000);
+        setTimeout(showNextLine, 2600); // 2.6 seconds per line
       } else {
-        setTimeout(() => {
-          bootText.style.display = 'none';
-          document.getElementById('fsvScreen').style.display = 'block';
-          simulateFSVLoading();
-        }, 3000);
+        const bootTextHeight = bootText.offsetHeight;
+        const progressSection = document.getElementById('progressSection');
+        progressSection.style.top = `${232 + bootTextHeight + 10}px`;
+        progressSection.style.display = 'block';
+        simulateLoading();
       }
     }
 
-    function simulateFSVLoading() {
+    function simulateLoading() {
       let progress = 0;
       const bar = document.getElementById('progressBar');
-      const message = document.getElementById('fsvMessage');
-      const fan = document.getElementById('fanSound');
+      const status = document.getElementById('status');
       const clicks = document.getElementById('clicksSound');
+      const stages = [
+        'Initializing...',
+        'Connecting to THUNDERBIRD Network...',
+        'Fetching Messages...',
+        'Boot Complete!'
+      ];
+      let stageIndex = 0;
+
       const interval = setInterval(() => {
-        progress += Math.random() * 6;
         if (progress >= 100) {
-          bar.style.width = "100%";
+          bar.textContent = '[△△△△△△△△△△△△△△△△△△△△] 100%';
           clearInterval(interval);
-          fan.pause();
-          clicks.pause();
-          message.textContent = "Launching BIG GIFS...";
+          clicks.pause(); // Only pause clicks, let fan continue crossfading
+          status.textContent = 'Boot Complete!';
           setTimeout(() => {
             window.location.href = '../tools/big-gifs/big-gifs.html';
           }, 2000);
         } else {
-          bar.style.width = progress + "%";
-          fan.volume = 0.3 + Math.random() * 0.2;
+          progress += 2;
+          const triangles = Math.floor(progress / 5);
+          const spaces = 20 - triangles;
+          bar.textContent = '[' + '△'.repeat(triangles) + ' '.repeat(spaces) + '] ' + Math.round(progress) + '%';
+          if (progress % 25 === 0 && stageIndex < stages.length - 1) {
+            stageIndex++;
+            status.textContent = stages[stageIndex];
+          }
           clicks.volume = 0.2 + Math.random() * 0.1;
         }
-      }, 1000);
+      }, 100);
     }
   </script>
 </body>
