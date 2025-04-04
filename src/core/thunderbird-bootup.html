@@ -90,8 +90,7 @@
     </div>
   </div>
 
-  <audio id="fanSound1" src="../../assets/audio/fan-hum.mp3"></audio>
-  <audio id="fanSound2" src="../../assets/audio/fan-hum-2.mp3"></audio>
+  <audio id="fanSound" src="../../assets/audio/fan-hum.mp3"></audio>
   <audio id="clicksSound" src="../../assets/audio/floppy-clicks.mp3" loop></audio>
   <audio id="bootBeep" src="../../assets/audio/startup-beep.mp3"></audio>
 
@@ -115,89 +114,18 @@
       document.getElementById('startScreen').style.display = 'none';
       document.getElementById('bootText').style.display = 'block';
 
-      const fanSound1 = document.getElementById('fanSound1');
-      const fanSound2 = document.getElementById('fanSound2');
+      const fanSound = document.getElementById('fanSound');
       const clicksSound = document.getElementById('clicksSound');
       const bootBeep = document.getElementById('bootBeep');
 
-      fanSound1.volume = 0.4;
-      fanSound2.volume = 0;
+      fanSound.volume = 0.4;
       clicksSound.volume = 0.3;
 
-      fanSound1.onerror = () => console.log('Fan sound 1 failed to load');
-      fanSound2.onerror = () => console.log('Fan sound 2 failed to load');
+      fanSound.onerror = () => console.log('Fan sound failed to load');
       clicksSound.onerror = () => console.log('Clicks sound failed to load');
       bootBeep.onerror = () => console.log('Boot beep failed to load');
 
-      // Start the first fan sound
-      fanSound1.play();
-
-      // Crossfade logic
-      const crossfadeDuration = 2000; // 2 seconds for crossfade
-      let isFirstPlaying = true;
-
-      function crossfade() {
-        if (isFirstPlaying) {
-          // Fade out fanSound1, fade in fanSound2
-          fanSound2.currentTime = 0;
-          fanSound2.play();
-          fadeOut(fanSound1, crossfadeDuration);
-          fadeIn(fanSound2, crossfadeDuration);
-        } else {
-          // Fade out fanSound2, fade in fanSound1
-          fanSound1.currentTime = 0;
-          fanSound1.play();
-          fadeOut(fanSound2, crossfadeDuration);
-          fadeIn(fanSound1, crossfadeDuration);
-        }
-        isFirstPlaying = !isFirstPlaying;
-      }
-
-      // Monitor the first audio to trigger crossfade
-      fanSound1.addEventListener('timeupdate', function() {
-        if (fanSound1.duration - fanSound1.currentTime <= crossfadeDuration / 1000) {
-          crossfade();
-        }
-      });
-
-      // Monitor the second audio to trigger crossfade
-      fanSound2.addEventListener('timeupdate', function() {
-        if (fanSound2.duration - fanSound2.currentTime <= crossfadeDuration / 1000) {
-          crossfade();
-        }
-      });
-
-      // Fade in function
-      function fadeIn(audio, duration) {
-        let volume = 0;
-        const increment = 0.4 / (duration / 50); // Adjust volume over duration
-        const interval = setInterval(() => {
-          if (volume >= 0.4) {
-            clearInterval(interval);
-            audio.volume = 0.4;
-          } else {
-            volume += increment;
-            audio.volume = Math.min(volume, 0.4);
-          }
-        }, 50);
-      }
-
-      // Fade out function
-      function fadeOut(audio, duration) {
-        let volume = audio.volume;
-        const decrement = volume / (duration / 50);
-        const interval = setInterval(() => {
-          if (volume <= 0) {
-            clearInterval(interval);
-            audio.volume = 0;
-            audio.pause();
-          } else {
-            volume -= decrement;
-            audio.volume = Math.max(volume, 0);
-          }
-        }, 50);
-      }
-
+      fanSound.play();
       clicksSound.play();
       bootBeep.play();
 
@@ -237,7 +165,7 @@
         if (progress >= 100) {
           bar.textContent = '[△△△△△△△△△△△△△△△△△△△△] 100%';
           clearInterval(interval);
-          clicks.pause(); // Only pause clicks, let fan continue crossfading
+          clicks.pause(); // Only pause clicks, let fan continue playing
           status.textContent = 'Boot Complete!';
           setTimeout(() => {
             window.location.href = '../tools/big-gifs/big-gifs.html';
