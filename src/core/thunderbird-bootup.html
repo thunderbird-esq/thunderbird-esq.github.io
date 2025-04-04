@@ -18,10 +18,10 @@
       align-items: center;
     }
     .container {
-      width: 640px;
-      height: 480px;
+      width: 1024px; /* Updated resolution */
+      height: 1024px; /* Updated resolution */
       background: url('../../assets/images/nova-background.png') no-repeat center center;
-      background-size: 640px 480px; /* Fixed resolution */
+      background-size: 1024px 1024px; /* Fixed resolution */
       position: relative;
       display: flex;
       justify-content: center;
@@ -51,13 +51,13 @@
       display: none;
       text-align: center;
       color: #0ff;
-      font-size: 14px; /* Scaled to fit 640x480 */
+      font-size: 18px; /* Scaled up for 1024x1024 */
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 100%;
-      max-height: 480px;
+      width: 90%; /* Ensure text fits within the square */
+      max-height: 1024px;
       overflow: hidden;
     }
     .boot-text .ok { color: #0f0; }
