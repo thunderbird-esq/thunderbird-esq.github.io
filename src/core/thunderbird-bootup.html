@@ -62,7 +62,7 @@
     .boot-text .fail { color: #f00; }
     .fsv-screen {
       display: none;
-      background: url('assets/images/blue-texture.png'); /* SGI-like gradient */
+      background: url('../../assets/images/blue-texture.png'); /* SGI-like gradient */
       background-size: cover;
       color: #0ff;
       font-family: 'Courier New', monospace;
@@ -113,25 +113,25 @@
   </div>
 
   <div class="boot-logo" id="bootLogo">
-    <img src="assets/images/nova-logo.png" alt="Thunderbird Logo" />
+    <img src="../../assets/images/nova-logo.png" alt="Thunderbird Logo" />
   </div>
 
   <pre class="boot-text" id="bootText"></pre>
 
   <div class="fsv-screen" id="fsvScreen">
     <div class="dialog-box">
-      <h2>Starting up the system...</h2>
+      <h2 id="fsvMessage">Starting up the system...</h2>
       <div class="progress-bar">
         <div class="progress-bar-inner" id="progressBar"></div>
       </div>
     </div>
     <p class="fsv-text">unlocking tomorrow's tombs</p>
-    <img class="fsv-logo" src="assets/images/nova-logo.png" alt="Thunderbird Logo" />
+    <img class="fsv-logo" src="../../assets/images/nova-logo.png" alt="Thunderbird Logo" />
   </div>
 
-  <audio id="fanSound" src="assets/audio/fan-hum.mp3" loop></audio>
-  <audio id="clicksSound" src="assets/audio/floppy-clicks.mp3" loop></audio>
-  <audio id="bootBeep" src="assets/audio/startup-beep.mp3"></audio>
+  <audio id="fanSound" src="../../assets/audio/fan-hum.mp3" loop></audio>
+  <audio id="clicksSound" src="../../assets/audio/floppy-clicks.mp3" loop></audio>
+  <audio id="bootBeep" src="../../assets/audio/startup-beep.mp3"></audio>
 
   <script>
     const bootLines = [
@@ -189,6 +189,7 @@
     function simulateFSVLoading() {
       let progress = 0;
       const bar = document.getElementById('progressBar');
+      const message = document.getElementById('fsvMessage');
       const fan = document.getElementById('fanSound');
       const clicks = document.getElementById('clicksSound');
       const interval = setInterval(() => {
@@ -198,9 +199,10 @@
           clearInterval(interval);
           fan.pause();
           clicks.pause();
+          message.textContent = "Launching BIG GIFS...";
           setTimeout(() => {
-            window.location.href = 'thunderbird-main.html';
-          }, 1000);
+            window.location.href = '../tools/big-gifs/big-gifs.html';
+          }, 2000); // Show message for 2 seconds before redirect
         } else {
           bar.style.width = progress + "%";
           fan.volume = 0.3 + Math.random() * 0.2;
