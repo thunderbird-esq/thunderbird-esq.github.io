@@ -9,6 +9,7 @@
     function onOpenCvReady() {
       opencvReady = true;
       console.log('OpenCV.js is ready');
+      document.getElementById('loadingIndicator').style.display = 'none';
     }
   </script>
   <script async src="/src/lib/opencv.js" onload="onOpenCvReady()"></script>
@@ -33,18 +34,25 @@
       overflow: hidden;
     }
     .sidebar {
-      width: 250px;
+      width: 200px; /* Reduced from 250px */
       background: #111;
       border-right: 2px solid #0ff;
       padding: 10px;
       overflow-y: auto;
       flex-shrink: 0;
+      transition: width 0.3s;
+    }
+    .sidebar.hidden {
+      width: 0;
+      padding: 0;
+      overflow: hidden;
     }
     .main-content {
       flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      position: relative;
     }
     .workspace {
       flex: 1;
@@ -59,6 +67,8 @@
     .canvas-wrapper {
       position: relative;
       text-align: center;
+      max-width: 50%; /* Ensure canvases don't take up too much space */
+      max-height: 80vh; /* Limit height to fit workspace */
     }
     .canvas-label {
       position: absolute;
@@ -69,12 +79,18 @@
       font-size: 12px;
     }
     .preview-section {
-      width: 150px;
+      width: 100px; /* Reduced from 150px */
       background: #111;
       border-left: 2px solid #0ff;
       padding: 10px;
       overflow-y: auto;
       flex-shrink: 0;
+      transition: width 0.3s;
+    }
+    .preview-section.hidden {
+      width: 0;
+      padding: 0;
+      overflow: hidden;
     }
     .selection-window {
       position: fixed;
@@ -101,6 +117,13 @@
       padding: 5px 10px;
       cursor: pointer;
       margin: 5px;
+    }
+    .selection-window .corner-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #f00;
+      cursor: pointer;
     }
     h1 {
       margin: 0 0 10px;
@@ -172,12 +195,12 @@
     canvas {
       border: 1px solid #0ff;
       max-width: 100%;
-      max-height: 600px;
+      max-height: 100%;
     }
     #edgeCanvas {
       border: 1px solid #f00;
       max-width: 100%;
-      max-height: 600px;
+      max-height: 100%;
     }
     .status {
       text-align: center;
@@ -198,8 +221,8 @@
     }
     .preview-section img {
       border: 1px solid #0ff;
-      max-width: 100px;
-      max-height: 100px;
+      max-width: 80px; /* Adjusted for smaller preview section */
+      max-height: 80px;
       cursor: pointer;
     }
     .preview-section img:hover {
@@ -221,6 +244,33 @@
       padding: 5px 10px;
       cursor: pointer;
     }
+    .toggle-buttons {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      display: flex;
+      gap: 5px;
+    }
+    .toggle-buttons button {
+      background: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+      padding: 2px 5px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .loading-indicator {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      border: 2px solid #0ff;
+      padding: 10px;
+      z-index: 1000;
+      color: #0ff;
+      text-align: center;
+    }
     @media (max-width: 1024px) {
       .container {
         flex-direction: column;
@@ -231,15 +281,26 @@
         border-right: none;
         border-bottom: 2px solid #0ff;
       }
+      .sidebar.hidden {
+        height: 0;
+        padding: 0;
+      }
       .workspace {
         flex-direction: column;
         align-items: center;
       }
+      .canvas-wrapper {
+        max-width: 100%;
+      }
       .preview-section {
         width: 100%;
-        height: 150px;
+        height: 120px; /* Adjusted for smaller screens */
         border-left: none;
         border-top: 2px solid #0ff;
+      }
+      .preview-section.hidden {
+        height: 0;
+        padding: 0;
       }
       .selection-window {
         width: 90%;
@@ -251,7 +312,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
       <h1>SPRITE SLICER</h1>
       <div class="mode-toggle">
         <label><input type="radio" name="mode" value="auto" checked onclick="toggleMode()"> Auto Mode</label>
@@ -347,6 +408,10 @@
       </div>
     </div>
     <div class="main-content">
+      <div class="toggle-buttons">
+        <button onclick="toggleSidebar()">Toggle Sidebar</button>
+        <button onclick="togglePreview()">Toggle Preview</button>
+      </div>
       <div class="status" id="status">Frames: 0</div>
       <div class="workspace">
         <div class="canvas-wrapper">
@@ -362,13 +427,19 @@
         <button onclick="exportToBigGifs()">Export to BIG GIFS LAB</button>
       </div>
     </div>
-    <div class="preview-section">
+    <div class="preview-section" id="previewSectionContainer">
       <h2>Preview Frames</h2>
       <div class="frames" id="previewSection"></div>
     </div>
     <div class="selection-window" id="selectionWindow">
       <canvas id="selectionCanvas"></canvas>
+      <div id="cornerHandles"></div>
+      <button onclick="cropSelection()">Crop</button>
       <button onclick="closeSelectionWindow()">Close</button>
+    </div>
+    <div class="loading-indicator" id="loadingIndicator">
+      <p>Loading OpenCV.js...</p>
+      <p id="loadingError" style="display: none; color: #f00;">Failed to load OpenCV.js. Please check your network and try again.</p>
     </div>
   </div>
 
@@ -392,6 +463,8 @@
     let lassoPoints = [];
     let isLassoDrawing = false;
     let currentSelectionIndex = null;
+    let lassoMode = 'add'; // 'add' or 'subtract'
+    let selectionCropRect = null;
     const canvas = document.getElementById('spriteCanvas');
     const ctx = canvas.getContext('2d');
     const edgeCanvas = document.getElementById('edgeCanvas');
@@ -401,6 +474,7 @@
     const selectionWindow = document.getElementById('selectionWindow');
     const selectionCanvas = document.getElementById('selectionCanvas');
     const selectionCtx = selectionCanvas.getContext('2d');
+    const cornerHandles = document.getElementById('cornerHandles');
 
     const defaultSettings = {
       contrast: 1,
@@ -413,6 +487,23 @@
       rows: 1,
       cols: 1
     };
+
+    // Check if OpenCV.js loads within a timeout
+    setTimeout(() => {
+      if (!opencvReady) {
+        document.getElementById('loadingIndicator').innerHTML = '<p style="color: #f00;">Failed to load OpenCV.js. Please check your network and try again.</p>';
+      }
+    }, 10000); // 10 seconds timeout
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('hidden');
+    }
+
+    function togglePreview() {
+      const preview = document.getElementById('previewSectionContainer');
+      preview.classList.toggle('hidden');
+    }
 
     function toggleMode() {
       mode = document.querySelector('input[name="mode"]:checked').value;
@@ -530,7 +621,6 @@
       let rects = [];
 
       if (gridConstrained) {
-        // Process each grid cell individually
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
             const x = col * cellWidth;
@@ -587,7 +677,6 @@
           }
         }
       } else {
-        // Process the entire image
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = spriteImage.width;
         tempCanvas.height = spriteImage.height;
@@ -641,7 +730,6 @@
         hierarchy.delete();
       }
 
-      // Display edges on the edge canvas
       edgeCtx.clearRect(0, 0, edgeCanvas.width, edgeCanvas.height);
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = spriteImage.width;
@@ -669,13 +757,11 @@
       blurred.delete();
       edges.delete();
 
-      // Merge nearby contours if enabled
       if (document.getElementById('mergeContours').checked) {
         const mergeDistance = parseInt(document.getElementById('mergeDistance').value);
         rects = mergeNearbyRects(rects, mergeDistance);
       }
 
-      // Convert merged rectangles to selections
       autoSelections = [];
       frames = [];
       rects.forEach((rect) => {
@@ -698,7 +784,6 @@
         frames.push(frameCanvas.toDataURL('image/png'));
       });
 
-      // Update status with feedback
       if (frames.length === 0) {
         status.textContent = 'No frames detected. Try adjusting the settings (e.g., lower thresholds, reduce blur, or increase min contour area).';
       } else {
@@ -707,7 +792,7 @@
 
       updatePreview();
       drawCanvas();
-    } // Fixed: Removed the stray '.' before the closing brace
+    }
 
     function mergeNearbyRects(rects, mergeDistance) {
       let merged = [];
@@ -745,7 +830,7 @@
               height: maxY - minY
             };
             used[j] = true;
-            j = -1; // Restart the loop to check for more merges
+            j = -1;
           }
         }
         merged.push(currentRect);
@@ -869,9 +954,8 @@
         }
       });
 
-      // Draw lasso path if in lasso mode
       if (mode === 'manual' && manualTool === 'lasso' && lassoPoints.length > 0) {
-        ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+        ctx.strokeStyle = lassoMode === 'add' ? 'rgba(255, 255, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
         ctx.lineWidth = 2 / zoom;
         ctx.beginPath();
         ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
@@ -936,6 +1020,7 @@
         if (manualTool === 'lasso') {
           lassoPoints = [{ x, y }];
           isLassoDrawing = true;
+          lassoMode = e.shiftKey ? 'add' : e.ctrlKey || e.metaKey ? 'subtract' : 'add';
         } else if (document.getElementById('snapToGrid').checked) {
           const rows = parseInt(document.getElementById('rowsInput').value);
           const cols = parseInt(document.getElementById('colsInput').value);
@@ -1056,7 +1141,6 @@
       if (manualTool === 'lasso') {
         isLassoDrawing = false;
         if (lassoPoints.length > 2) {
-          // Find the bounding rectangle of the lasso points
           const minX = Math.min(...lassoPoints.map(p => p.x));
           const maxX = Math.max(...lassoPoints.map(p => p.x));
           const minY = Math.min(...lassoPoints.map(p => p.y));
@@ -1071,24 +1155,42 @@
               width: width,
               height: height
             };
-            manualSelections.push(selection);
 
-            const frameCanvas = document.createElement('canvas');
-            const frameCtx = frameCanvas.getContext('2d');
-            frameCanvas.width = width;
-            frameCanvas.height = height;
-            frameCtx.drawImage(
-              spriteImage,
-              selection.x,
-              selection.y,
-              width,
-              height,
-              0,
-              0,
-              width,
-              height
-            );
-            frames.push(frameCanvas.toDataURL('image/png'));
+            if (lassoMode === 'add') {
+              manualSelections.push(selection);
+              const frameCanvas = document.createElement('canvas');
+              const frameCtx = frameCanvas.getContext('2d');
+              frameCanvas.width = width;
+              frameCanvas.height = height;
+              frameCtx.drawImage(
+                spriteImage,
+                selection.x,
+                selection.y,
+                width,
+                height,
+                0,
+                0,
+                width,
+                height
+              );
+              frames.push(frameCanvas.toDataURL('image/png'));
+            } else if (lassoMode === 'subtract') {
+              const tempSelections = [];
+              const tempFrames = [];
+              manualSelections.forEach((sel, idx) => {
+                if (
+                  sel.x + sel.width < minX ||
+                  sel.x > maxX ||
+                  sel.y + sel.height < minY ||
+                  sel.y > maxY
+                ) {
+                  tempSelections.push(sel);
+                  tempFrames.push(frames[idx]);
+                }
+              });
+              manualSelections = tempSelections;
+              frames = tempFrames;
+            }
             updatePreview();
           }
         }
@@ -1213,10 +1315,8 @@
         });
         frameImg.addEventListener('click', (e) => {
           if (e.shiftKey) {
-            // Shift + click to open selection window
             openSelectionWindow(index);
           } else {
-            // Regular click to delete
             frames.splice(index, 1);
             if (mode === 'manual') manualSelections.splice(index, 1);
             else autoSelections.splice(index, 1);
@@ -1246,12 +1346,137 @@
         rect.width,
         rect.height
       );
+      selectionCropRect = { x: 0, y: 0, width: rect.width, height: rect.height };
+      setupCornerHandles();
       selectionWindow.style.display = 'flex';
+    }
+
+    function setupCornerHandles() {
+      cornerHandles.innerHTML = '';
+      const corners = [
+        { id: 'top-left', x: selectionCropRect.x, y: selectionCropRect.y },
+        { id: 'top-right', x: selectionCropRect.x + selectionCropRect.width - 10, y: selectionCropRect.y },
+        { id: 'bottom-left', x: selectionCropRect.x, y: selectionCropRect.y + selectionCropRect.height - 10 },
+        { id: 'bottom-right', x: selectionCropRect.x + selectionCropRect.width - 10, y: selectionCropRect.y + selectionCropRect.height - 10 }
+      ];
+
+      corners.forEach(corner => {
+        const handle = document.createElement('div');
+        handle.className = 'corner-handle';
+        handle.style.left = `${corner.x}px`;
+        handle.style.top = `${corner.y}px`;
+        handle.dataset.corner = corner.id;
+        handle.draggable = true;
+        handle.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', corner.id);
+        });
+        cornerHandles.appendChild(handle);
+      });
+
+      selectionCanvas.addEventListener('dragover', (e) => e.preventDefault());
+      selectionCanvas.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const cornerId = e.dataTransfer.getData('text/plain');
+        const rect = selectionCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        let newX = selectionCropRect.x;
+        let newY = selectionCropRect.y;
+        let newWidth = selectionCropRect.width;
+        let newHeight = selectionCropRect.height;
+
+        if (cornerId === 'top-left') {
+          newWidth = (selectionCropRect.x + selectionCropRect.width) - x;
+          newHeight = (selectionCropRect.y + selectionCropRect.height) - y;
+          newX = x;
+          newY = y;
+        } else if (cornerId === 'top-right') {
+          newWidth = x - selectionCropRect.x;
+          newHeight = (selectionCropRect.y + selectionCropRect.height) - y;
+          newY = y;
+        } else if (cornerId === 'bottom-left') {
+          newWidth = (selectionCropRect.x + selectionCropRect.width) - x;
+          newHeight = y - selectionCropRect.y;
+          newX = x;
+        } else if (cornerId === 'bottom-right') {
+          newWidth = x - selectionCropRect.x;
+          newHeight = y - selectionCropRect.y;
+        }
+
+        if (newWidth > 5 && newHeight > 5 && newX >= 0 && newY >= 0 && (newX + newWidth) <= selectionCanvas.width && (newY + newHeight) <= selectionCanvas.height) {
+          selectionCropRect = { x: newX, y: newY, width: newWidth, height: newHeight };
+          setupCornerHandles();
+          drawSelectionCanvas();
+        }
+      });
+
+      drawSelectionCanvas();
+    }
+
+    function drawSelectionCanvas() {
+      selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      const rect = selections[currentSelectionIndex];
+      selectionCtx.drawImage(
+        spriteImage,
+        rect.x,
+        rect.y,
+        rect.width,
+        rect.height,
+        0,
+        0,
+        rect.width,
+        rect.height
+      );
+      selectionCtx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+      selectionCtx.lineWidth = 2;
+      selectionCtx.strokeRect(selectionCropRect.x, selectionCropRect.y, selectionCropRect.width, selectionCropRect.height);
+    }
+
+    function cropSelection() {
+      if (!currentSelectionIndex) return;
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      const rect = selections[currentSelectionIndex];
+      const newX = rect.x + selectionCropRect.x;
+      const newY = rect.y + selectionCropRect.y;
+      const newWidth = selectionCropRect.width;
+      const newHeight = selectionCropRect.height;
+
+      selections[currentSelectionIndex] = {
+        x: newX,
+        y: newY,
+        width: newWidth,
+        height: newHeight
+      };
+
+      const frameCanvas = document.createElement('canvas');
+      const frameCtx = frameCanvas.getContext('2d');
+      frameCanvas.width = newWidth;
+      frameCanvas.height = newHeight;
+      frameCtx.drawImage(
+        spriteImage,
+        newX,
+        newY,
+        newWidth,
+        newHeight,
+        0,
+        0,
+        newWidth,
+        newHeight
+      );
+      frames[currentSelectionIndex] = frameCanvas.toDataURL('image/png');
+
+      updatePreview();
+      drawCanvas();
+      closeSelectionWindow();
     }
 
     function closeSelectionWindow() {
       selectionWindow.style.display = 'none';
       currentSelectionIndex = null;
+      selectionCropRect = null;
+      cornerHandles.innerHTML = '';
     }
 
     function exportToBigGifs() {
