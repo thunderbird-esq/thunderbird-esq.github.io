@@ -7,13 +7,22 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: url('../../assets/images/nova-background.png') no-repeat center center fixed;
-      background-size: cover;
+      background: black; /* Fallback background */
       color: #0ff; /* Teal like SGI screens */
       font-family: 'Courier New', monospace;
       font-size: 14px;
       overflow: hidden;
       height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      width: 640px;
+      height: 480px;
+      background: url('../../assets/images/nova-background.png') no-repeat center center;
+      background-size: 640px 480px; /* Fixed resolution */
+      position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -42,6 +51,14 @@
       display: none;
       text-align: center;
       color: #0ff;
+      font-size: 14px; /* Scaled to fit 640x480 */
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      max-height: 480px;
+      overflow: hidden;
     }
     .boot-text .ok { color: #0f0; }
     .boot-text .fail { color: #f00; }
@@ -50,10 +67,11 @@
       color: #0ff;
       font-family: 'Courier New', monospace;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
     }
     .dialog-box {
       background: #222;
@@ -61,13 +79,14 @@
       padding: 20px;
       width: 300px;
       box-shadow: 2px 2px 0 #0ff;
+      margin: 0 auto;
     }
     .progress-bar {
       width: 80%;
       height: 20px;
       background-color: #111;
       border: 1px solid #0ff;
-      margin-top: 20px;
+      margin: 20px auto 0;
     }
     .progress-bar-inner {
       height: 100%;
@@ -84,20 +103,22 @@
   </style>
 </head>
 <body>
-  <div class="start-screen" id="startScreen">
-    <button onclick="startBoot()">Power On</button>
-  </div>
-
-  <pre class="boot-text" id="bootText"></pre>
-
-  <div class="fsv-screen" id="fsvScreen">
-    <div class="dialog-box">
-      <h2 id="fsvMessage">Starting up the system...</h2>
-      <div class="progress-bar">
-        <div class="progress-bar-inner" id="progressBar"></div>
-      </div>
+  <div class="container">
+    <div class="start-screen" id="startScreen">
+      <button onclick="startBoot()">Power On</button>
     </div>
-    <p class="fsv-text">unlocking tomorrow's tombs</p>
+
+    <pre class="boot-text" id="bootText"></pre>
+
+    <div class="fsv-screen" id="fsvScreen">
+      <div class="dialog-box">
+        <h2 id="fsvMessage">Starting up the system...</h2>
+        <div class="progress-bar">
+          <div class="progress-bar-inner" id="progressBar"></div>
+        </div>
+      </div>
+      <p class="fsv-text">unlocking tomorrow's tombs</p>
+    </div>
   </div>
 
   <audio id="fanSound" src="../../assets/audio/fan-hum.mp3" loop></audio>
@@ -149,7 +170,7 @@
       } else {
         setTimeout(() => {
           bootText.style.display = 'none';
-          document.getElementById('fsvScreen').style.display = 'flex';
+          document.getElementById('fsvScreen').style.display = 'block';
           simulateFSVLoading();
         }, 3000);
       }
