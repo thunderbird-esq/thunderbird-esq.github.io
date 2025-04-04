@@ -53,7 +53,7 @@
       color: #808080; /* Grey */
       font-size: 16px;
       position: absolute;
-      top: 232px; /* Moved up 50px from 282px */
+      top: 232px;
       left: 147px;
       width: calc(100% - 169px);
       max-height: calc(100% - 254px);
@@ -63,7 +63,7 @@
     .boot-text .fail { color: #f00; }
     .progress-section {
       position: absolute;
-      top: 232px; /* Will adjust dynamically */
+      top: 232px;
       left: 147px;
       width: calc(100% - 169px);
       text-align: left;
@@ -137,10 +137,9 @@
         i++;
         setTimeout(showNextLine, 2600); // 2.6 seconds per line
       } else {
-        // Calculate the height of the boot text to position the progress bar
         const bootTextHeight = bootText.offsetHeight;
         const progressSection = document.getElementById('progressSection');
-        progressSection.style.top = `${232 + bootTextHeight + 10}px`; // 10px separation
+        progressSection.style.top = `${232 + bootTextHeight + 10}px`;
         progressSection.style.display = 'block';
         simulateLoading();
       }
@@ -162,24 +161,23 @@
 
       const interval = setInterval(() => {
         if (progress >= 100) {
-          bar.textContent = '[△△△△△△△△△△△△△△△△△△△△] 100%'; // 20 triangles at 100%
+          bar.textContent = '[△△△△△△△△△△△△△△△△△△△△] 100%';
           clearInterval(interval);
-          fan.pause();
-          clicks.pause();
+          clicks.pause(); // Only pause clicks, let fan continue looping
           status.textContent = 'Boot Complete!';
           setTimeout(() => {
             window.location.href = '../tools/big-gifs/big-gifs.html';
           }, 2000);
         } else {
-          progress += 2; // 2% every 100ms, 5 seconds total
-          const triangles = Math.floor(progress / 5); // 20 triangles total (100% / 5)
-          const spaces = 20 - triangles; // Remaining spaces to fill 20 slots
+          progress += 2;
+          const triangles = Math.floor(progress / 5);
+          const spaces = 20 - triangles;
           bar.textContent = '[' + '△'.repeat(triangles) + ' '.repeat(spaces) + '] ' + Math.round(progress) + '%';
           if (progress % 25 === 0 && stageIndex < stages.length - 1) {
             stageIndex++;
             status.textContent = stages[stageIndex];
           }
-          fan.volume = 0.3 + Math.random() * 0.2;
+          fan.volume = 0.3 + Math.random() * 0.2; // Keep adjusting volume to ensure playback
           clicks.volume = 0.2 + Math.random() * 0.1;
         }
       }, 100);
