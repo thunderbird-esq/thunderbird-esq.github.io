@@ -1,23 +1,23 @@
 /* Font Definitions */
 @font-face {
   font-family: Chicago;
-  src: url("core/fonts/ChicagoFLF.woff") format("woff"),
-       url("core/fonts/ChicagoFLF.woff2") format("woff2");
+  src: url("fonts/ChicagoFLF.woff") format("woff"),
+       url("fonts/ChicagoFLF.woff2") format("woff2");
 }
 @font-face {
   font-family: Chicago_12;
-  src: url("core/fonts/ChiKareGo2.woff") format("woff"),
-       url("core/fonts/ChiKareGo2.woff2") format("woff2");
+  src: url("fonts/ChiKareGo2.woff") format("woff"),
+       url("fonts/ChiKareGo2.woff2") format("woff2");
 }
 @font-face {
   font-family: Geneva_9;
-  src: url("core/fonts/FindersKeepers.woff") format("woff"),
-       url("core/fonts/FindersKeepers.woff2") format("woff2");
+  src: url("fonts/FindersKeepers.woff") format("woff"),
+       url("fonts/FindersKeepers.woff2") format("woff2");
 }
 @font-face {
   font-family: Monaco;
-  src: url("core/fonts/monaco.woff") format("woff"),
-       url("core/fonts/monaco.woff2") format("woff2");
+  src: url("fonts/monaco.woff") format("woff"),
+       url("fonts/monaco.woff2") format("woff2");
 }
 
 /* CSS Variables */
@@ -524,7 +524,7 @@ body {
   background: var(--primary);
   border-style: solid;
   border-width: 5.5px;
-  border-image: url("core/icon/button.svg") 30 stretch;
+  border-image: url("icon/button.svg") 30 stretch;
   color: var(--secondary);
   text-align: center;
   text-decoration: none;
@@ -541,7 +541,7 @@ body {
   color: var(--disabled);
 }
 .btn-default {
-  border-image: url("core/icon/button-default.svg") 60 stretch;
+  border-image: url("icon/button-default.svg") 60 stretch;
   border-width: 0.5em;
 }
 .btn-default:active {
