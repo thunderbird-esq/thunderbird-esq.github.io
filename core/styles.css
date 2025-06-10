@@ -336,7 +336,7 @@ body {
 .boot-text::-webkit-scrollbar-button:vertical:decrement:end,
 .window-pane::-webkit-scrollbar-button:vertical:decrement:end,
 .message-area::-webkit-scrollbar-button:vertical:decrement:end {
-  background: url("core/icon/scrollbar-up.svg") no-repeat center center;
+  background: url("icon/scrollbar-up.svg") no-repeat center center;
   background-size: 16px 16px;
   height: 22px;
   display: block;
@@ -344,13 +344,13 @@ body {
 .boot-text::-webkit-scrollbar-button:vertical:decrement:end:active,
 .window-pane::-webkit-scrollbar-button:vertical:decrement:end:active,
 .message-area::-webkit-scrollbar-button:vertical:decrement:end:active {
-  background: url("core/icon/scrollbar-up-active.svg") no-repeat center center;
+  background: url("icon/scrollbar-up-active.svg") no-repeat center center;
   background-size: 16px 16px;
 }
 .boot-text::-webkit-scrollbar-button:vertical:increment:start,
 .window-pane::-webkit-scrollbar-button:vertical:increment:start,
 .message-area::-webkit-scrollbar-button:vertical:increment:start {
-  background: url("core/icon/scrollbar-down.svg") no-repeat center center;
+  background: url("icon/scrollbar-down.svg") no-repeat center center;
   background-size: 16px 16px;
   height: 22px;
   display: block;
@@ -358,7 +358,7 @@ body {
 .boot-text::-webkit-scrollbar-button:vertical:increment:start:active,
 .window-pane::-webkit-scrollbar-button:vertical:increment:start:active,
 .message-area::-webkit-scrollbar-button:vertical:increment:start:active {
-  background: url("core/icon/scrollbar-down-active.svg") no-repeat center center;
+  background: url("icon/scrollbar-down-active.svg") no-repeat center center;
   background-size: 16px 16px;
 }
 .boot-text::-webkit-scrollbar-button:vertical:decrement:start,
