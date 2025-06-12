@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS SPRITE SLICER</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #000;
+      color: #0F0;
+      padding: 20px;
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #0F0;
+      margin-top: 10px;
+      cursor: crosshair;
+    }
+    .controls {
+      margin-top: 20px;
+    }
+    .preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .preview-item {
+      border: 1px solid #0F0;
+      padding: 5px;
+    }
+    .preview-item canvas {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .toggle-btn, .control-btn, select, input {
+      margin: 5px;
+      padding: 5px;
+      font-family: monospace;
+      background: #222;
+      color: #0F0;
+      border: 1px solid #0F0;
+    }
+  </style>
+</head>
+<body>
+  <h2>BIG GIFS SPRITE SLICER</h2>
+  <input type="file" id="spriteSheet" accept="image/*">
+  <div class="controls">
+    <button class="toggle-btn" onclick="toggleMode()">Switch to Manual Mode</button>
+    <span id="modeLabel">Mode: Grid</span><br>
+    <label>Rows: <input type="number" id="rows" value="1" min="1"></label>
+    <label>Cols: <input type="number" id="cols" value="1" min="1"></label>
+    <button class="control-btn" onclick="sliceGrid()">Slice Grid</button>
+    <button class="control-btn" onclick="undoLast()">Undo Last Frame</button>
+    <button class="control-btn" onclick="exportFrames()">Export Frames to BIG GIFS LAB</button>
+  </div>
+  <canvas id="canvas" width="0" height="0"></canvas>
+  <p id="frameCount">Frames: 0</p>
+  <div class="preview" id="preview"></div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const preview = document.getElementById('preview');
+    const frameCountDisplay = document.getElementById('frameCount');
+    const toggleBtn = document.querySelector('.toggle-btn');
+    const modeLabel = document.getElementById('modeLabel');
+    const rowsInput = document.getElementById('rows');
+    const colsInput = document.getElementById('cols');
+    let image = new Image();
+    let frames = [];
+    let mode = 'grid';
+    let manualRects = [];
+    let isDrawing = false;
+    let startX, startY;
+
+    document.getElementById('spriteSheet').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        image.src = event.target.result;
+        image.onload = function() {
+          canvas.width = image.width;
+          canvas.height = image.height;
+          ctx.drawImage(image, 0, 0);
+        };
+      };
+      reader.readAsDataURL(file);
+    });
+
+    canvas.addEventListener('mousedown', e => {
+      if (mode === 'manual') {
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+      }
+    });
+
+    canvas.addEventListener('mouseup', e => {
+      if (mode === 'manual' && isDrawing) {
+        isDrawing = false;
+        const rect = canvas.getBoundingClientRect();
+        const endX = e.clientX - rect.left;
+        const endY = e.clientY - rect.top;
+        const x = Math.min(startX, endX);
+        const y = Math.min(startY, endY);
+        const width = Math.abs(startX - endX);
+        const height = Math.abs(startY - endY);
+        manualRects.push({ x, y, width, height });
+        drawOverlay();
+        updatePreview();
+      }
+    });
+
+    function drawOverlay() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0);
+      ctx.strokeStyle = '#FF00FF';
+      ctx.lineWidth = 1;
+      ctx.font = '10px monospace';
+      manualRects.forEach((r, i) => {
+        ctx.strokeRect(r.x, r.y, r.width, r.height);
+        ctx.fillStyle = '#FF00FF';
+        ctx.fillText(`F${i+1}`, r.x + 2, r.y + 12);
+      });
+    }
+
+    function sliceGrid() {
+      if (!image.src) return;
+      const rows = parseInt(rowsInput.value);
+      const cols = parseInt(colsInput.value);
+      const cellWidth = canvas.width / cols;
+      const cellHeight = canvas.height / rows;
+      frames = [];
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          frames.push({ x: x * cellWidth, y: y * cellHeight, width: cellWidth, height: cellHeight });
+        }
+      }
+      updatePreview();
+    }
+
+    function updatePreview() {
+      preview.innerHTML = '';
+      const list = mode === 'grid' ? frames : manualRects;
+      list.forEach((r, i) => {
+        const c = document.createElement('canvas');
+        c.width = r.width;
+        c.height = r.height;
+        const cx = c.getContext('2d');
+        cx.drawImage(image, r.x, r.y, r.width, r.height, 0, 0, r.width, r.height);
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        const del = document.createElement('button');
+        del.textContent = 'delete';
+        del.onclick = () => {
+          list.splice(i, 1);
+          updatePreview();
+          if (mode === 'manual') drawOverlay();
+        };
+        item.appendChild(c);
+        item.appendChild(del);
+        preview.appendChild(item);
+      });
+      frameCountDisplay.textContent = `Frames: ${list.length}`;
+    }
+
+    function undoLast() {
+      if (mode === 'manual') {
+        manualRects.pop();
+        drawOverlay();
+        updatePreview();
+      } else {
+        frames.pop();
+        updatePreview();
+      }
+    }
+
+    function toggleMode() {
+      mode = (mode === 'grid') ? 'manual' : 'grid';
+      modeLabel.textContent = `Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+      toggleBtn.textContent = mode === 'grid' ? 'Switch to Manual Mode' : 'Switch to Grid Mode';
+      updatePreview();
+    }
+
+    function exportFrames() {
+      alert("Exporting " + (mode === 'grid' ? frames.length : manualRects.length) + " frames to BIG GIFS LAB! (simulated)");
+    }
+  </script>
+</body>
+</html>

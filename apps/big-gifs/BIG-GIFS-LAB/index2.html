@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>B I G   G I F S</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #000;
+      color: #0F0;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      font-size: 10px;
+      font-weight: normal;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    pre {
+      color: #FF00FF;
+      font-size: 16px;
+      line-height: 1;
+      text-align: center;
+    }
+    label, input, button {
+      font-family: 'Courier New', monospace;
+      background-color: #222;
+      color: #0F0;
+      border: 1px solid #0F0;
+      padding: 5px;
+      margin: 2px;
+      font-size: 10px;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    button {
+      text-transform: uppercase;
+    }
+    #controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .input-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 5px 0;
+    }
+    #progressContainer {
+      width: 100%;
+      background-color: #333;
+      margin: 10px 0;
+      display: none;
+    }
+    #progressBar {
+      height: 20px;
+      background-color: #0F0;
+      width: 0%;
+    }
+    #preview {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .preview-img {
+      object-fit: cover;
+      border: 1px solid #0F0;
+    }
+    .frame-number {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #FF00FF;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+ <pre>
+░▒▓███████▓▒░       ░▒▓█▓▒░       ░▒▓██████▓▒░                                                          
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░                                                         
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                                                                
+░▒▓███████▓▒░       ░▒▓█▓▒░      ░▒▓█▓▒▒▓███▓▒░                                                         
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░                                                         
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░                                                         
+░▒▓███████▓▒░       ░▒▓█▓▒░       ░▒▓██████▓▒░                                                          
+                                                                                                        
+                                                                                                        
+                                     ░▒▓██████▓▒░       ░▒▓█▓▒░      ░▒▓████████▓▒░       ░▒▓███████▓▒░ 
+                                    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓█▓▒░        
+                                    ░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓█▓▒░        
+                                    ░▒▓█▓▒▒▓███▓▒░      ░▒▓█▓▒░      ░▒▓██████▓▒░         ░▒▓██████▓▒░  
+                                    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░ 
+                                    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░ 
+                                     ░▒▓██████▓▒░       ░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓███████▓▒░  
+                                                                                                     
+    </pre>
+    <div id="controls">
+      <div class="input-row">
+        <input type="file" id="imageInput" multiple accept="image/*" title="images">
+      </div>
+      <div class="input-row">
+        <label for="cellWidth">width:</label>
+        <input type="number" id="cellWidth" value="100">
+        <label for="cellHeight">height:</label>
+        <input type="number" id="cellHeight" value="100">
+      </div>
+      <div class="input-row">
+        <label for="frameRate">fps:</label>
+        <input type="number" id="frameRate" value="2" min="1">
+      </div>
+      <div class="input-row">
+        <button onclick="createGIF()">create gif</button>
+      </div>
+    </div>
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
+    <div id="preview"></div>
+  </div>
+
+  <script src="./gif.js"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const preview = document.getElementById('preview');
+    const cellWidthInput = document.getElementById('cellWidth');
+    const cellHeightInput = document.getElementById('cellHeight');
+    const frameRateInput = document.getElementById('frameRate');
+    let images = [];
+
+    imageInput.addEventListener('change', function () {
+      images = [];
+      preview.innerHTML = '';
+      const files = Array.from(this.files);
+      const totalFiles = files.length;
+      let loadedFiles = 0;
+
+      if (totalFiles > 0) {
+        progressContainer.style.display = 'block';
+      }
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            images[index] = img;
+            loadedFiles++;
+            progressBar.style.width = `${(loadedFiles / totalFiles) * 100}%`;
+            if (loadedFiles === totalFiles) {
+              displayPreviews();
+              progressContainer.style.display = 'none';
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function displayPreviews() {
+      preview.innerHTML = '';
+      images.forEach((img, index) => {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const cellWidth = parseInt(cellWidthInput.value, 10);
+        const cellHeight = parseInt(cellHeightInput.value, 10);
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+
+        ctx.drawImage(img, 0, 0, cellWidth, cellHeight);
+        canvas.className = 'preview-img';
+
+        const frameNumber = document.createElement('div');
+        frameNumber.className = 'frame-number';
+        frameNumber.textContent = `frame ${index + 1}`;
+
+        previewItem.appendChild(canvas);
+        previewItem.appendChild(frameNumber);
+        preview.appendChild(previewItem);
+      });
+    }
+
+    function createGIF() {
+      if (images.length === 0) {
+        alert('please select images first.');
+        return;
+      }
+
+      const cellWidth = parseInt(cellWidthInput.value, 10);
+      const cellHeight = parseInt(cellHeightInput.value, 10);
+      const frameRate = parseInt(frameRateInput.value, 10);
+      const delay = 1000 / frameRate;
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: cellWidth,
+        height: cellHeight,
+        repeat: 0,
+        workerScript: './gif.worker.js'
+      });
+
+      images.forEach((img) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+        ctx.drawImage(img, 0, 0, cellWidth, cellHeight);
+        gif.addFrame(canvas, { delay: delay, copy: true });
+      });
+
+      gif.on('finished', function (blob) {
+        const url = URL.createObjectURL(blob);
+
+        const gifImg = document.createElement('img');
+        gifImg.src = url;
+        gifImg.alt = 'generated gif';
+
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = 'big-gif.gif';
+        downloadLink.textContent = '⬇ download gif';
+        downloadLink.style.display = 'inline-block';
+        downloadLink.style.marginTop = '10px';
+        downloadLink.style.padding = '6px 12px';
+        downloadLink.style.backgroundColor = '#0F0';
+        downloadLink.style.color = '#000';
+        downloadLink.style.textDecoration = 'none';
+        downloadLink.style.fontWeight = 'bold';
+        downloadLink.style.border = '1px solid #0F0';
+
+        preview.innerHTML = '';
+        preview.appendChild(gifImg);
+        preview.appendChild(downloadLink);
+      });
+
+      gif.render();
+    }
+  </script>
+</body>
+</html>

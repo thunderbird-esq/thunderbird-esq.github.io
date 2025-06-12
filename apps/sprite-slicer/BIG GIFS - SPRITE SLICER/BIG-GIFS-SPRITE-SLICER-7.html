@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS Sprite Slicer - Sprint 1</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: #202020;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    canvas {
+      background: #000;
+      margin: 10px auto;
+      border: 1px solid #fff;
+      cursor: crosshair;
+    }
+    #controls {
+      margin: 1em auto;
+    }
+    label, input, button {
+      margin: 0.2em;
+    }
+  </style>
+</head>
+<body>
+  <h2>BIG GIFS Sprite Slicer - Sprint 1</h2>
+  <div id="controls">
+    <input type="file" id="spriteSheetInput" accept="image/*"><br>
+    <label>Cell Width: <input type="number" id="cellWidth" value="32" min="1"></label>
+    <label>Cell Height: <input type="number" id="cellHeight" value="32" min="1"></label><br>
+    <label>Columns: <input type="number" id="columns" value="0" min="0"></label>
+    <label>Rows: <input type="number" id="rows" value="0" min="0"></label><br>
+    <label><input type="checkbox" id="gridToggle" checked> Show Grid</label>
+    <label><input type="checkbox" id="snapToggle" checked> Snap to Grid</label><br>
+    <button onclick="zoomIn()">Zoom In</button>
+    <button onclick="zoomOut()">Zoom Out</button>
+    <button onclick="resetView()">Reset View</button>
+  </div>
+  <canvas id="spriteCanvas" width="640" height="480"></canvas>
+  <script>
+    const canvas = document.getElementById('spriteCanvas');
+    const ctx = canvas.getContext('2d');
+    const imageInput = document.getElementById('spriteSheetInput');
+    const gridToggle = document.getElementById('gridToggle');
+    const snapToggle = document.getElementById('snapToggle');
+    const cellWidthInput = document.getElementById('cellWidth');
+    const cellHeightInput = document.getElementById('cellHeight');
+    let scale = 1.0, image = new Image(), imgLoaded = false;
+
+    imageInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        image.onload = () => {
+          imgLoaded = true;
+          draw();
+        };
+        image.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function draw() {
+      if (!imgLoaded) return;
+      canvas.width = image.width * scale;
+      canvas.height = image.height * scale;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      if (gridToggle.checked) drawGrid();
+    }
+
+    function drawGrid() {
+      const cellW = parseInt(cellWidthInput.value) * scale;
+      const cellH = parseInt(cellHeightInput.value) * scale;
+      ctx.strokeStyle = 'lime';
+      for (let x = 0; x < canvas.width; x += cellW) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += cellH) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function zoomIn() { scale *= 1.25; draw(); }
+    function zoomOut() { scale /= 1.25; draw(); }
+    function resetView() { scale = 1.0; draw(); }
+
+    cellWidthInput.addEventListener('change', draw);
+    cellHeightInput.addEventListener('change', draw);
+    gridToggle.addEventListener('change', draw);
+  </script>
+</body>
+</html>

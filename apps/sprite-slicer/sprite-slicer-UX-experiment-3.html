@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sprite Slicer - Thunderbird OS</title>
+  <script>
+    let opencvReady = false;
+    function onOpenCvReady() {
+      opencvReady = true;
+      console.log('OpenCV.js is ready');
+      document.getElementById('loadingIndicator').style.display = 'none';
+    }
+  </script>
+  <script async src="lib/opencv.js" onload="onOpenCvReady()"></script>
+  <script src="lib/jszip.min.js"></script>
+  <script src="lib/FileSaver.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #808080;
+      font-family: 'Monaco', monospace;
+      color: #000;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .desktop {
+      width: 1000px;
+      height: 1000px;
+      background: linear-gradient(45deg, #00cccc, #ff00ff);
+      border: 2px solid #000;
+      box-shadow: 4px 4px 0 #000;
+      position: relative;
+      overflow: hidden;
+    }
+    .toolbar {
+      background: #d3d3d3;
+      border-bottom: 2px solid #000;
+      padding: 4px;
+      display: flex;
+      gap: 4px;
+      box-shadow: inset 1px 1px 0 #fff;
+    }
+    .toolbar button {
+      background: #c0c0c0;
+      border: 1px solid #000;
+      box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080;
+      padding: 2px 8px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .toolbar button:hover { background: #e0e0e0; }
+    .toolbar button:active { box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff; }
+    .window {
+      position: absolute;
+      background: #d3d3d3;
+      border: 2px solid #000;
+      box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080, 2px 2px 0 #000;
+      padding: 2px;
+      resize: both;
+      overflow: auto;
+    }
+    .title-bar {
+      background: linear-gradient(to right, #00cccc, #d3d3d3);
+      padding: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: move;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #000;
+    }
+    .title-bar button {
+      width: 12px;
+      height: 12px;
+      background: #ff00ff;
+      border: 1px solid #000;
+      padding: 0;
+      cursor: pointer;
+    }
+    .title-bar button:hover { background: #ff66ff; }
+    .control-panel { width: 220px; height: 600px; top: 40px; left: 10px; }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #000;
+      background: #c0c0c0;
+    }
+    .tab {
+      padding: 4px 8px;
+      border-right: 1px solid #000;
+      cursor: pointer;
+      background: #d3d3d3;
+    }
+    .tab.active { background: #fff; font-weight: bold; }
+    .panel {
+      padding: 8px;
+      display: none;
+      height: calc(100% - 60px);
+      overflow-y: auto;
+    }
+    .panel.active { display: block; }
+    .control-group { margin: 8px 0; }
+    .control-group label {
+      display: block;
+      margin: 4px 0;
+      font-size: 10px;
+    }
+    input[type="range"] { width: 120px; vertical-align: middle; }
+    input[type="number"] {
+      width: 40px;
+      background: #fff;
+      border: 1px solid #000;
+      padding: 2px;
+    }
+    input[type="file"] {
+      display: block;
+      margin: 8px 0;
+      background: #fff;
+      border: 1px solid #000;
+      padding: 2px;
+    }
+    button {
+      background: #c0c0c0;
+      border: 1px solid #000;
+      box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    button:hover { background: #e0e0e0; }
+    button:active { box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff; }
+    .workspace { width: 740px; height: 500px; top: 40px; left: 240px; }
+    .canvas-container {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px;
+      height: calc(100% - 60px);
+    }
+    .canvas-wrapper { text-align: center; }
+    .canvas-label { font-size: 10px; margin-bottom: 4px; }
+    canvas {
+      border: 1px solid #000;
+      max-width: 350px;
+      max-height: 450px;
+      background: #fff;
+    }
+    #edgeCanvas { border: 1px solid #ff00ff; }
+    .status-bar {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      right: 2px;
+      background: #c0c0c0;
+      padding: 2px;
+      font-size: 10px;
+      border-top: 1px solid #000;
+    }
+    .frame-viewer { width: 740px; height: 200px; top: 550px; left: 240px; }
+    .frames {
+      padding: 8px;
+      overflow-y: auto;
+      height: calc(100% - 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .frame-container img {
+      border: 1px solid #000;
+      max-width: 80px;
+      max-height: 80px;
+      cursor: pointer;
+    }
+    .frame-container img:hover { border-color: #ff00ff; }
+    .frame-container img.selected { border: 2px solid #ff00ff; }
+    .selection-window, .finishing-window {
+      width: 350px;
+      height: 450px;
+      top: 200px;
+      left: 400px;
+      display: none;
+      z-index: 10;
+    }
+    .selection-canvas-container, .finishing-preview { text-align: center; padding: 8px; }
+    .selection-canvas-container canvas, .finishing-preview canvas {
+      max-width: 330px;
+      max-height: 300px;
+    }
+    .corner-handle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #ff00ff;
+      border: 1px solid #000;
+      cursor: pointer;
+    }
+    .transform-controls, .color-controls { margin: 8px 0; text-align: center; }
+    .transform-controls h3, .color-controls h3 { font-size: 10px; margin: 4px 0; }
+    .loading-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #d3d3d3;
+      border: 2px solid #000;
+      padding: 8px;
+      box-shadow: 2px 2px 0 #000;
+      z-index: 20;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="desktop">
+    <div class="toolbar">
+      <button onclick="toggleWindow('controlPanel')">Control</button>
+      <button onclick="toggleWindow('workspace')">Workspace</button>
+      <button onclick="toggleWindow('frameViewer')">Frames</button>
+      <button onclick="toggleWindow('actionsWindow')">Actions</button>
+      <button onclick="document.getElementById('spriteSheetInput').click()">Load</button>
+      <button onclick="exportAsZip()">Save</button>
+    </div>
+    <div class="window control-panel" id="controlPanel">
+      <div class="title-bar">
+        <span>Control Panel</span>
+        <button onclick="toggleWindow('controlPanel')"></button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('general')">General</div>
+        <div class="tab" onclick="switchTab('auto')">Auto</div>
+        <div class="tab" onclick="switchTab('manual')">Manual</div>
+      </div>
+      <div class="panel active" id="generalPanel">
+        <input type="file" id="spriteSheetInput" accept="image/*" style="display: none;">
+        <div class="control-group">
+          <label><input type="checkbox" id="adjustCorners" checked onchange="drawCanvas()"> Adjust Corners</label>
+          <label>Mode:</label>
+          <label><input type="radio" name="mode" value="auto" checked onclick="toggleMode()"> Auto</label>
+          <label><input type="radio" name="mode" value="refine" onclick="toggleMode()"> Refine</label>
+          <label><input type="radio" name="mode" value="manual" onclick="toggleMode()"> Manual</label>
+        </div>
+        <div class="control-group">
+          <label>Rows: <input type="number" id="rowsInput" min="1" value="1" oninput="updateGridSettings()"></label>
+          <label>Cols: <input type="number" id="colsInput" min="1" value="1" oninput="updateGridSettings()"></label>
+          <button onclick="sliceWithGrid()">Slice Grid</button>
+        </div>
+      </div>
+      <div class="panel" id="autoPanel">
+        <div class="control-group">
+          <label><input type="checkbox" id="gridConstrainedEdge" onchange="autoSlice()"> Grid-Constrained Edge</label>
+          <label>Contrast: <input type="range" id="contrast" min="0.5" max="2" step="0.1" value="1" oninput="autoSlice()"></label>
+          <label>Blur: <input type="range" id="blurAmount" min="1" max="15" step="2" value="3" oninput="autoSlice()"></label>
+          <label>Thresh 1: <input type="range" id="threshold1" min="0" max="255" value="50" oninput="autoSlice()"></label>
+          <label>Thresh 2: <input type="range" id="threshold2" min="0" max="255" value="150" oninput="autoSlice()"></label>
+          <label>Min Area: <input type="range" id="minContourArea" min="100" max="5000" value="100" oninput="autoSlice()"></label>
+          <label><input type="checkbox" id="mergeContours" checked onchange="autoSlice()"> Merge Contours</label>
+          <label>Merge Dist: <input type="range" id="mergeDistance" min="0" max="50" value="10" oninput="autoSlice()"></label>
+          <button onclick="resetSettings()">Reset</button>
+        </div>
+      </div>
+      <div class="panel" id="manualPanel">
+        <div class="control-group">
+          <label>Tool: <select id="manualTool" onchange="updateManualTool()">
+            <option value="rectangle">Rectangle</option>
+            <option value="lasso">Lasso</option>
+            <option value="magicWand">Magic Wand</option>
+          </select></label>
+          <label id="toleranceLabel" style="display: none;">Tolerance: <input type="range" id="wandTolerance" min="0" max="255" value="30"></label>
+          <label><input type="checkbox" id="showGrid" checked onchange="drawCanvas()"> Show Grid</label>
+          <label><input type="checkbox" id="snapToGrid" checked> Snap to Grid</label>
+          <label>Zoom: <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1" oninput="updateZoom()"></label>
+          <button onclick="undoLastSelection()">Undo</button>
+        </div>
+      </div>
+    </div>
+    <div class="window workspace" id="workspace">
+      <div class="title-bar">
+        <span>Workspace</span>
+        <button onclick="toggleWindow('workspace')"></button>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-wrapper">
+          <div class="canvas-label">Sprite Sheet</div>
+          <canvas id="spriteCanvas"></canvas>
+        </div>
+        <div class="canvas-wrapper">
+          <div class="canvas-label">Edge Preview</div>
+          <canvas id="edgeCanvas"></canvas>
+        </div>
+      </div>
+      <div class="status-bar" id="status">Mode: Auto | Frames: 0 | Undo: No | Redo: No</div>
+    </div>
+    <div class="window frame-viewer" id="frameViewer">
+      <div class="title-bar">
+        <span>Frame Viewer</span>
+        <button onclick="toggleWindow('frameViewer')"></button>
+      </div>
+      <div class="frames" id="previewSection"></div>
+    </div>
+    <div class="window" id="actionsWindow" style="bottom: 10px; right: 10px; width: 200px;">
+      <div class="title-bar">
+        <span>Actions</span>
+        <button onclick="toggleWindow('actionsWindow')"></button>
+      </div>
+      <div style="padding: 8px; text-align: center;">
+        <button onclick="undo()">Undo</button>
+        <button onclick="redo()">Redo</button>
+        <button onclick="openFinishingWindow()">Finish</button>
+        <button onclick="exportAsZip()">Export ZIP</button>
+      </div>
+    </div>
+    <div class="window selection-window" id="selectionWindow">
+      <div class="title-bar">
+        <span>Frame Editor</span>
+        <button onclick="closeSelectionWindow()"></button>
+      </div>
+      <div class="selection-canvas-container">
+        <canvas id="selectionCanvas"></canvas>
+        <div id="cornerHandles"></div>
+      </div>
+      <div class="transform-controls">
+        <h3>Transform</h3>
+        <button onclick="rotateFrame(90)">Rot 90°</button>
+        <button onclick="rotateFrame(180)">Rot 180°</button>
+        <button onclick="flipFrame('horizontal')">Flip H</button>
+        <button onclick="flipFrame('vertical')">Flip V</button>
+      </div>
+      <div class="color-controls">
+        <h3>Color</h3>
+        <label>Hue: <input type="range" id="hueAdjust" min="-180" max="180" value="0" oninput="adjustColors()"></label>
+        <label>Sat: <input type="range" id="saturationAdjust" min="-100" max="100" value="0" oninput="adjustColors()"></label>
+        <label>Bri: <input type="range" id="brightnessAdjust" min="-100" max="100" value="0" oninput="adjustColors()"></label>
+        <button onclick="resetColorAdjustments()">Reset</button>
+      </div>
+      <button onclick="cropSelection()">Crop</button>
+    </div>
+    <div class="window finishing-window" id="finishingWindow">
+      <div class="title-bar">
+        <span>Finishing</span>
+        <button onclick="closeFinishingWindow()"></button>
+      </div>
+      <div class="finishing-preview">
+        <canvas id="finishingPreviewCanvas"></canvas>
+      </div>
+      <div class="control-group">
+        <label>Template:
+          <select id="frameSizeTemplate" onchange="toggleCustomSize()">
+            <option value="gameboy_16x16">Game Boy (16x16)</option>
+            <option value="nes_8x8">NES (8x8)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <div class="custom-size" id="customSizeInputs" style="display: none;">
+          <label>W: <input type="number" id="customWidth" min="1" value="16"></label>
+          <label>H: <input type="number" id="customHeight" min="1" value="16"></label>
+        </div>
+        <label>Scale: <input type="range" id="scaleFactor" min="0.5" max="4" step="0.1" value="1" oninput="updateFinishingPreview()"></label>
+        <button onclick="applyFinishing()">Apply</button>
+      </div>
+    </div>
+    <div class="loading-indicator" id="loadingIndicator">
+      <p>Loading OpenCV.js...</p>
+    </div>
+  </div>
+
+  <script>
+    let mode = 'auto';
+    let spriteImage = null;
+    let frames = [];
+    let manualSelections = [];
+    let autoSelections = [];
+    let isDragging = false;
+    let startX, startY;
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    let isPanning = false;
+    let lastPanX, lastPanY;
+    let selectedCorner = null;
+    let selectedRectIndex = null;
+    let selectedArray = null;
+    let manualTool = 'rectangle';
+    let lassoPoints = [];
+    let isLassoDrawing = false;
+    let currentSelectionIndex = null;
+    let lassoMode = 'add';
+    let selectionCropRect = null;
+    let selectedFrameIndex = null;
+    let history = [];
+    let historyIndex = -1;
+    let colorAdjustments = { hue: 0, saturation: 0, brightness: 0 };
+    const canvas = document.getElementById('spriteCanvas');
+    const ctx = canvas.getContext('2d');
+    const edgeCanvas = document.getElementById('edgeCanvas');
+    const edgeCtx = edgeCanvas.getContext('2d');
+    const previewSection = document.getElementById('previewSection');
+    const status = document.getElementById('status');
+    const selectionWindow = document.getElementById('selectionWindow');
+    const selectionCanvas = document.getElementById('selectionCanvas');
+    const selectionCtx = selectionCanvas.getContext('2d');
+    const cornerHandles = document.getElementById('cornerHandles');
+    const finishingWindow = document.getElementById('finishingWindow');
+    const finishingPreviewCanvas = document.getElementById('finishingPreviewCanvas');
+    const finishingPreviewCtx = finishingPreviewCanvas.getContext('2d');
+
+    const defaultSettings = {
+      contrast: 1,
+      blurAmount: 3,
+      threshold1: 50,
+      threshold2: 150,
+      minContourArea: 100,
+      mergeContours: true,
+      mergeDistance: 10,
+      rows: 1,
+      cols: 1
+    };
+
+    document.querySelectorAll('.title-bar').forEach(bar => {
+      let isDraggingWindow = false;
+      let startX, startY;
+      bar.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        isDraggingWindow = true;
+        const window = bar.parentElement;
+        startX = e.clientX - parseInt(window.style.left || 0);
+        startY = e.clientY - parseInt(window.style.top || 0);
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!isDraggingWindow) return;
+        const window = bar.parentElement;
+        let newLeft = e.clientX - startX;
+        let newTop = e.clientY - startY;
+        newLeft = Math.max(0, Math.min(newLeft, 1000 - window.offsetWidth));
+        newTop = Math.max(40, Math.min(newTop, 1000 - window.offsetHeight));
+        window.style.left = `${newLeft}px`;
+        window.style.top = `${newTop}px`;
+      });
+      document.addEventListener('mouseup', () => { isDraggingWindow = false; });
+    });
+
+    function toggleWindow(id) {
+      const win = document.getElementById(id);
+      win.style.display = win.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`${tabName}Panel`).classList.add('active');
+    }
+
+    function toggleMode() {
+      mode = document.querySelector('input[name="mode"]:checked').value;
+      manualSelections = [];
+      if (mode !== 'auto') frames = [];
+      zoom = 1;
+      panX = 0;
+      panY = 0;
+      document.getElementById('zoomSlider').value = 1;
+      updatePreview();
+      if (spriteImage) {
+        if (mode === 'auto') autoSlice();
+        drawCanvas();
+      }
+      updateStatusBar();
+    }
+
+    document.getElementById('spriteSheetInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        spriteImage = new Image();
+        spriteImage.src = URL.createObjectURL(file);
+        spriteImage.onload = () => {
+          canvas.width = spriteImage.width;
+          canvas.height = spriteImage.height;
+          edgeCanvas.width = spriteImage.width;
+          edgeCanvas.height = spriteImage.height;
+          zoom = 1;
+          panX = 0;
+          panY = 0;
+          const suggestedRows = Math.max(1, Math.round(spriteImage.height / 32));
+          const suggestedCols = Math.max(1, Math.round(spriteImage.width / 32));
+          document.getElementById('rowsInput').value = suggestedRows;
+          document.getElementById('colsInput').value = suggestedCols;
+          defaultSettings.rows = suggestedRows;
+          defaultSettings.cols = suggestedCols;
+          drawCanvas();
+          if (mode === 'auto' && opencvReady) autoSlice();
+        };
+      }
+    });
+
+    function resetSettings() {
+      document.getElementById('contrast').value = defaultSettings.contrast;
+      document.getElementById('blurAmount').value = defaultSettings.blurAmount;
+      document.getElementById('threshold1').value = defaultSettings.threshold1;
+      document.getElementById('threshold2').value = defaultSettings.threshold2;
+      document.getElementById('minContourArea').value = defaultSettings.minContourArea;
+      document.getElementById('mergeContours').checked = defaultSettings.mergeContours;
+      document.getElementById('mergeDistance').value = defaultSettings.mergeDistance;
+      document.getElementById('rowsInput').value = defaultSettings.rows;
+      document.getElementById('colsInput').value = defaultSettings.cols;
+      if (spriteImage && mode === 'auto') autoSlice();
+    }
+
+    function updateGridSettings() {
+      if (spriteImage && mode === 'auto') autoSlice();
+      drawCanvas();
+    }
+
+    function autoSlice() {
+      if (!spriteImage || !opencvReady) return;
+      const gridConstrained = document.getElementById('gridConstrainedEdge').checked;
+      const rows = parseInt(document.getElementById('rowsInput').value);
+      const cols = parseInt(document.getElementById('colsInput').value);
+      const cellWidth = spriteImage.width / cols;
+      const cellHeight = spriteImage.height / rows;
+      let rects = [];
+
+      if (gridConstrained) {
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const x = col * cellWidth;
+            const y = row * cellHeight;
+            const cellCanvas = document.createElement('canvas');
+            cellCanvas.width = cellWidth;
+            cellCanvas.height = cellHeight;
+            const cellCtx = cellCanvas.getContext('2d');
+            cellCtx.drawImage(spriteImage, x, y, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
+            const src = cv.imread(cellCanvas);
+            const gray = new cv.Mat();
+            const adjusted = new cv.Mat();
+            const blurred = new cv.Mat();
+            const edges = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            const contrast = parseFloat(document.getElementById('contrast').value);
+            gray.convertTo(adjusted, -1, contrast, 0);
+            const blurSize = parseInt(document.getElementById('blurAmount').value);
+            cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
+            cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+            const contours = new cv.MatVector();
+            const hierarchy = new cv.Mat();
+            cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            const minContourArea = parseInt(document.getElementById('minContourArea').value);
+            for (let i = 0; i < contours.size(); i++) {
+              const contour = contours.get(i);
+              const area = cv.contourArea(contour);
+              if (area >= minContourArea) {
+                const rect = cv.boundingRect(contour);
+                rects.push({ x: rect.x + x, y: rect.y + y, width: rect.width, height: rect.height });
+              }
+            }
+            src.delete(); gray.delete(); adjusted.delete(); blurred.delete(); edges.delete(); contours.delete(); hierarchy.delete();
+          }
+        }
+      } else {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = spriteImage.width;
+        tempCanvas.height = spriteImage.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(spriteImage, 0, 0);
+        const src = cv.imread(tempCanvas);
+        const gray = new cv.Mat();
+        const adjusted = new cv.Mat();
+        const blurred = new cv.Mat();
+        const edges = new cv.Mat();
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        const contrast = parseFloat(document.getElementById('contrast').value);
+        gray.convertTo(adjusted, -1, contrast, 0);
+        const blurSize = parseInt(document.getElementById('blurAmount').value);
+        cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
+        cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+        const minContourArea = parseInt(document.getElementById('minContourArea').value);
+        for (let i = 0; i < contours.size(); i++) {
+          const contour = contours.get(i);
+          const area = cv.contourArea(contour);
+          if (area >= minContourArea) {
+            const rect = cv.boundingRect(contour);
+            rects.push({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+          }
+        }
+        src.delete(); gray.delete(); adjusted.delete(); blurred.delete(); edges.delete(); contours.delete(); hierarchy.delete();
+      }
+
+      edgeCtx.clearRect(0, 0, edgeCanvas.width, edgeCanvas.height);
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = spriteImage.width;
+      tempCanvas.height = spriteImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(spriteImage, 0, 0);
+      const src = cv.imread(tempCanvas);
+      const gray = new cv.Mat();
+      const adjusted = new cv.Mat();
+      const blurred = new cv.Mat();
+      const edges = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      const contrast = parseFloat(document.getElementById('contrast').value);
+      gray.convertTo(adjusted, -1, contrast, 0);
+      const blurSize = parseInt(document.getElementById('blurAmount').value);
+      cv.GaussianBlur(adjusted, blurred, new cv.Size(blurSize, blurSize), 0);
+      cv.Canny(blurred, edges, parseInt(document.getElementById('threshold1').value), parseInt(document.getElementById('threshold2').value));
+      cv.imshow(edgeCanvas, edges);
+      src.delete(); gray.delete(); adjusted.delete(); blurred.delete(); edges.delete();
+
+      if (document.getElementById('mergeContours').checked) {
+        const mergeDistance = parseInt(document.getElementById('mergeDistance').value);
+        rects = mergeNearbyRects(rects, mergeDistance);
+      }
+
+      autoSelections = [];
+      frames = [];
+      rects.forEach((rect) => {
+        autoSelections.push(rect);
+        const frameCanvas = document.createElement('canvas');
+        const frameCtx = frameCanvas.getContext('2d');
+        frameCanvas.width = rect.width;
+        frameCanvas.height = rect.height;
+        frameCtx.drawImage(spriteImage, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+        const frameData = frameCanvas.toDataURL('image/png');
+        frames.push(frameData);
+        addToHistory({ type: 'add-frame', frame: frameData, selection: rect });
+      });
+
+      updatePreview();
+      drawCanvas();
+    }
+
+    function mergeNearbyRects(rects, mergeDistance) {
+      let merged = [];
+      let used = new Array(rects.length).fill(false);
+      for (let i = 0; i < rects.length; i++) {
+        if (used[i]) continue;
+        let currentRect = { ...rects[i] };
+        used[i] = true;
+        for (let j = 0; j < rects.length; j++) {
+          if (i === j || used[j]) continue;
+          const otherRect = rects[j];
+          const expandedRect = {
+            x: currentRect.x - mergeDistance,
+            y: currentRect.y - mergeDistance,
+            width: currentRect.width + 2 * mergeDistance,
+            height: currentRect.height + 2 * mergeDistance
+          };
+          if (
+            otherRect.x >= expandedRect.x &&
+            otherRect.x + otherRect.width <= expandedRect.x + expandedRect.width &&
+            otherRect.y >= expandedRect.y &&
+            otherRect.y + otherRect.height <= expandedRect.y + expandedRect.height
+          ) {
+            const minX = Math.min(currentRect.x, otherRect.x);
+            const minY = Math.min(currentRect.y, otherRect.y);
+            const maxX = Math.max(currentRect.x + currentRect.width, otherRect.x + otherRect.width);
+            const maxY = Math.max(currentRect.y + currentRect.height, otherRect.y + otherRect.height);
+            currentRect = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+            used[j] = true;
+            j = -1;
+          }
+        }
+        merged.push(currentRect);
+      }
+      return merged;
+    }
+
+    function sliceWithGrid() {
+      if (!spriteImage) return;
+      const rows = parseInt(document.getElementById('rowsInput').value);
+      const cols = parseInt(document.getElementById('colsInput').value);
+      const cellWidth = spriteImage.width / cols;
+      const cellHeight = spriteImage.height / rows;
+      autoSelections = [];
+      frames = [];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const rect = { x: col * cellWidth, y: row * cellHeight, width: cellWidth, height: cellHeight };
+          autoSelections.push(rect);
+          const frameCanvas = document.createElement('canvas');
+          const frameCtx = frameCanvas.getContext('2d');
+          frameCanvas.width = cellWidth;
+          frameCanvas.height = cellHeight;
+          frameCtx.drawImage(spriteImage, rect.x, rect.y, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
+          const frameData = frameCanvas.toDataURL('image/png');
+          frames.push(frameData);
+          addToHistory({ type: 'add-frame', frame: frameData, selection: rect });
+        }
+      }
+      updatePreview();
+      drawCanvas();
+    }
+
+    function updateZoom() {
+      zoom = parseFloat(document.getElementById('zoomSlider').value);
+      drawCanvas();
+    }
+
+    function updateManualTool() {
+      manualTool = document.getElementById('manualTool').value;
+      lassoPoints = [];
+      isLassoDrawing = false;
+      document.getElementById('toleranceLabel').style.display = manualTool === 'magicWand' ? 'block' : 'none';
+      drawCanvas();
+    }
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (spriteImage) {
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+        ctx.drawImage(spriteImage, 0, 0);
+        ctx.restore();
+      }
+
+      const rows = parseInt(document.getElementById('rowsInput').value);
+      const cols = parseInt(document.getElementById('colsInput').value);
+      const cellWidth = canvas.width / cols;
+      const cellHeight = canvas.height / rows;
+
+      if ((mode === 'manual' && document.getElementById('showGrid').checked) || mode === 'auto' || mode === 'refine') {
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoom, zoom);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1 / zoom;
+        for (let row = 1; row < rows; row++) {
+          ctx.beginPath();
+          ctx.moveTo(0, row * cellHeight);
+          ctx.lineTo(canvas.width, row * cellHeight);
+          ctx.stroke();
+        }
+        for (let col = 1; col < cols; col++) {
+          ctx.beginPath();
+          ctx.moveTo(col * cellWidth, 0);
+          ctx.lineTo(col * cellWidth, canvas.height);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      const adjustCorners = document.getElementById('adjustCorners').checked;
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(zoom, zoom);
+      selections.forEach((selection, index) => {
+        ctx.strokeStyle = '#ff00ff';
+        ctx.lineWidth = 2 / zoom;
+        ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
+        if (adjustCorners) {
+          const handleSize = 8 / zoom;
+          ctx.fillStyle = '#ff00ff';
+          ctx.fillRect(selection.x - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize);
+          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y - handleSize / 2, handleSize, handleSize);
+          ctx.fillRect(selection.x - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize);
+          ctx.fillRect(selection.x + selection.width - handleSize / 2, selection.y + selection.height - handleSize / 2, handleSize, handleSize);
+        }
+      });
+      if (mode === 'manual' && manualTool === 'lasso' && lassoPoints.length > 0) {
+        ctx.strokeStyle = lassoMode === 'add' ? '#00cccc' : '#ff00ff';
+        ctx.lineWidth = 2 / zoom;
+        ctx.beginPath();
+        ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+        for (let i = 1; i < lassoPoints.length; i++) {
+          ctx.lineTo(lassoPoints[i].x, lassoPoints[i].y);
+        }
+        if (!isLassoDrawing) ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (!spriteImage) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+
+      if (e.altKey) {
+        isPanning = true;
+        lastPanX = e.clientX;
+        lastPanY = e.clientY;
+        return;
+      }
+
+      const adjustCorners = document.getElementById('adjustCorners').checked;
+      if (adjustCorners) {
+        const selections = mode === 'manual' ? manualSelections : autoSelections;
+        const handleSize = 8 / zoom;
+        selectedCorner = null;
+        selectedRectIndex = null;
+        selectedArray = null;
+        for (let i = 0; i < selections.length; i++) {
+          const sel = selections[i];
+          const corners = [
+            { corner: 'top-left', x: sel.x, y: sel.y },
+            { corner: 'top-right', x: sel.x + sel.width, y: sel.y },
+            { corner: 'bottom-left', x: sel.x, y: sel.y + sel.height },
+            { corner: 'bottom-right', x: sel.x + sel.width, y: sel.y + sel.height }
+          ];
+          for (const corner of corners) {
+            const distX = x - corner.x;
+            const distY = y - corner.y;
+            if (Math.abs(distX) <= handleSize && Math.abs(distY) <= handleSize) {
+              selectedCorner = corner.corner;
+              selectedRectIndex = i;
+              selectedArray = mode === 'manual' ? manualSelections : autoSelections;
+              isDragging = true;
+              break;
+            }
+          }
+          if (isDragging) break;
+        }
+      }
+
+      if (!isDragging && mode === 'manual') {
+        startX = x;
+        startY = y;
+        if (manualTool === 'lasso') {
+          lassoPoints = [{ x, y }];
+          isLassoDrawing = true;
+          lassoMode = e.shiftKey ? 'add' : (e.ctrlKey || e.metaKey) ? 'subtract' : 'add';
+        } else if (manualTool === 'magicWand') {
+          magicWandSelect(x, y);
+        } else if (document.getElementById('snapToGrid').checked) {
+          const rows = parseInt(document.getElementById('rowsInput').value);
+          const cols = parseInt(document.getElementById('colsInput').value);
+          const cellWidth = spriteImage.width / cols;
+          const cellHeight = spriteImage.height / rows;
+          startX = Math.round(startX / cellWidth) * cellWidth;
+          startY = Math.round(startY / cellHeight) * cellHeight;
+        }
+        if (manualTool !== 'magicWand') isDragging = true;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+
+      if (isPanning) {
+        const dx = e.clientX - lastPanX;
+        const dy = e.clientY - lastPanY;
+        panX += dx;
+        panY += dy;
+        lastPanX = e.clientX;
+        lastPanY = e.clientY;
+        drawCanvas();
+        return;
+      }
+
+      if (isDragging && selectedRectIndex !== null && selectedCorner !== null && selectedArray !== null) {
+        const sel = selectedArray[selectedRectIndex];
+        let newX = sel.x;
+        let newY = sel.y;
+        let newWidth = sel.width;
+        let newHeight = sel.height;
+        const rows = parseInt(document.getElementById('rowsInput').value);
+        const cols = parseInt(document.getElementById('colsInput').value);
+        const cellWidth = spriteImage.width / cols;
+        const cellHeight = spriteImage.height / rows;
+        let snappedX = Math.round(x / cellWidth) * cellWidth;
+        let snappedY = Math.round(y / cellHeight) * cellHeight;
+
+        if (selectedCorner === 'top-left') {
+          newWidth = (sel.x + sel.width) - snappedX;
+          newHeight = (sel.y + sel.height) - snappedY;
+          newX = snappedX;
+          newY = snappedY;
+        } else if (selectedCorner === 'top-right') {
+          newWidth = snappedX - sel.x;
+          newHeight = (sel.y + sel.height) - snappedY;
+          newY = snappedY;
+        } else if (selectedCorner === 'bottom-left') {
+          newWidth = (sel.x + sel.width) - snappedX;
+          newHeight = snappedY - sel.y;
+          newX = snappedX;
+        } else if (selectedCorner === 'bottom-right') {
+          newWidth = snappedX - sel.x;
+          newHeight = snappedY - sel.y;
+        }
+
+        if (newWidth > 5 && newHeight > 5 && newX >= 0 && newY >= 0 && (newX + newWidth) <= spriteImage.width && (newY + newHeight) <= spriteImage.height) {
+          selectedArray[selectedRectIndex] = { x: newX, y: newY, width: newWidth, height: newHeight };
+          updateFrame(selectedRectIndex);
+        }
+        drawCanvas();
+      } else if (isDragging && mode === 'manual' && manualTool !== 'magicWand') {
+        if (manualTool === 'lasso' && isLassoDrawing) {
+          lassoPoints.push({ x, y });
+          drawCanvas();
+        } else if (manualTool === 'rectangle') {
+          let endX = x;
+          let endY = y;
+          if (document.getElementById('snapToGrid').checked) {
+            const rows = parseInt(document.getElementById('rowsInput').value);
+            const cols = parseInt(document.getElementById('colsInput').value);
+            const cellWidth = spriteImage.width / cols;
+            const cellHeight = spriteImage.height / rows;
+            endX = Math.round(endX / cellWidth) * cellWidth;
+            endY = Math.round(endY / cellHeight) * cellHeight;
+          }
+          drawCanvas();
+          ctx.save();
+          ctx.translate(panX, panY);
+          ctx.scale(zoom, zoom);
+          ctx.strokeStyle = '#ff00ff';
+          ctx.lineWidth = 2 / zoom;
+          ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+          ctx.restore();
+        }
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (isPanning) {
+        isPanning = false;
+        return;
+      }
+      if (isDragging && selectedRectIndex !== null) {
+        isDragging = false;
+        selectedCorner = null;
+        selectedRectIndex = null;
+        selectedArray = null;
+        drawCanvas();
+        return;
+      }
+      if (!isDragging || mode !== 'manual' || manualTool === 'magicWand') return;
+      const rect = canvas.getBoundingClientRect();
+      let endX = (e.clientX - rect.left) * (canvas.width / rect.width) / zoom - panX / zoom;
+      let endY = (e.clientY - rect.top) * (canvas.height / rect.height) / zoom - panY / zoom;
+
+      if (manualTool === 'lasso') {
+        isLassoDrawing = false;
+        if (lassoPoints.length > 2) {
+          const minX = Math.min(...lassoPoints.map(p => p.x));
+          const maxX = Math.max(...lassoPoints.map(p => p.x));
+          const minY = Math.min(...lassoPoints.map(p => p.y));
+          const maxY = Math.max(...lassoPoints.map(p => p.y));
+          const width = maxX - minX;
+          const height = maxY - minY;
+          if (width > 5 && height > 5) {
+            const lassoRect = { x: minX, y: minY, width, height };
+            if (lassoMode === 'add') {
+              const selection = { x: minX, y: minY, width, height };
+              manualSelections.push(selection);
+              const frameCanvas = document.createElement('canvas');
+              const frameCtx = frameCanvas.getContext('2d');
+              frameCanvas.width = width;
+              frameCanvas.height = height;
+              frameCtx.drawImage(spriteImage, selection.x, selection.y, width, height, 0, 0, width, height);
+              const frameData = frameCanvas.toDataURL('image/png');
+              frames.push(frameData);
+              addToHistory({ type: 'add-frame', frame: frameData, selection });
+            } else if (lassoMode === 'subtract') {
+              const newSelections = [];
+              const newFrames = [];
+              manualSelections.forEach((sel, idx) => {
+                const selRight = sel.x + sel.width;
+                const selBottom = sel.y + sel.height;
+                const lassoRight = lassoRect.x + lassoRect.width;
+                const lassoBottom = lassoRect.y + lassoRect.height;
+                const doesNotOverlap = (
+                  selRight < lassoRect.x || sel.x > lassoRight ||
+                  selBottom < lassoRect.y || sel.y > lassoBottom
+                );
+                if (doesNotOverlap) {
+                  newSelections.push(sel);
+                  newFrames.push(frames[idx]);
+                } else {
+                  addToHistory({ type: 'delete-frame', index: idx, frame: frames[idx], selection: sel });
+                }
+              });
+              manualSelections = newSelections;
+              frames = newFrames;
+            }
+            updatePreview();
+          }
+        }
+        lassoPoints = [];
+      } else if (manualTool === 'rectangle') {
+        if (document.getElementById('snapToGrid').checked) {
+          const rows = parseInt(document.getElementById('rowsInput').value);
+          const cols = parseInt(document.getElementById('colsInput').value);
+          const cellWidth = spriteImage.width / cols;
+          const cellHeight = spriteImage.height / rows;
+          endX = Math.round(endX / cellWidth) * cellWidth;
+          endY = Math.round(endY / cellHeight) * cellHeight;
+        }
+        const width = Math.abs(endX - startX);
+        const height = Math.abs(endY - startY);
+        if (width > 5 && height > 5) {
+          const selection = { x: Math.min(startX, endX), y: Math.min(startY, endY), width, height };
+          manualSelections.push(selection);
+          const frameCanvas = document.createElement('canvas');
+          const frameCtx = frameCanvas.getContext('2d');
+          frameCanvas.width = width;
+          frameCanvas.height = height;
+          frameCtx.drawImage(spriteImage, selection.x, selection.y, width, height, 0, 0, width, height);
+          const frameData = frameCanvas.toDataURL('image/png');
+          frames.push(frameData);
+          addToHistory({ type: 'add-frame', frame: frameData, selection });
+          updatePreview();
+        }
+      }
+      isDragging = false;
+      drawCanvas();
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      if (mode !== 'manual' || !spriteImage) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      zoom = Math.max(0.5, Math.min(3, zoom + delta));
+      document.getElementById('zoomSlider').value = zoom;
+      drawCanvas();
+    });
+
+    function magicWandSelect(x, y) {
+      if (!spriteImage || !opencvReady) return;
+      let targetFrame = null;
+      let frameIndex = -1;
+      for (let i = 0; i < manualSelections.length; i++) {
+        const sel = manualSelections[i];
+        if (x >= sel.x && x <= sel.x + sel.width && y >= sel.y && y <= sel.y + sel.height) {
+          targetFrame = sel;
+          frameIndex = i;
+          break;
+        }
+      }
+      if (!targetFrame) return;
+      const frameCanvas = document.createElement('canvas');
+      frameCanvas.width = targetFrame.width;
+      frameCanvas.height = targetFrame.height;
+      const frameCtx = frameCanvas.getContext('2d');
+      frameCtx.drawImage(spriteImage, targetFrame.x, targetFrame.y, targetFrame.width, targetFrame.height, 0, 0, targetFrame.width, targetFrame.height);
+      const imageData = frameCtx.getImageData(0, 0, targetFrame.width, targetFrame.height);
+      const data = imageData.data;
+      const frameX = Math.floor(x - targetFrame.x);
+      const frameY = Math.floor(y - targetFrame.y);
+      const idx = (frameY * targetFrame.width + frameX) * 4;
+      const targetColor = { r: data[idx], g: data[idx + 1], b: data[idx + 2], a: data[idx + 3] };
+      const src = cv.imread(frameCanvas);
+      const gray = new cv.Mat();
+      const blurred = new cv.Mat();
+      const edges = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      cv.GaussianBlur(gray, blurred, new cv.Size(3, 3), 0);
+      cv.Canny(blurred, edges, 50, 150);
+      const mask = new Array(targetFrame.height).fill().map(() => new Array(targetFrame.width).fill(false));
+      const tolerance = parseInt(document.getElementById('wandTolerance').value);
+      const stack = [{ x: frameX, y: frameY }];
+      while (stack.length > 0) {
+        const { x: px, y: py } = stack.pop();
+        if (px < 0 || px >= targetFrame.width || py < 0 || py >= targetFrame.height || mask[py][px]) continue;
+        const idx = (py * targetFrame.width + px) * 4;
+        const color = { r: data[idx], g: data[idx + 1], b: data[idx + 2], a: data[idx + 3] };
+        const colorDiff = Math.sqrt(
+          Math.pow(color.r - targetColor.r, 2) +
+          Math.pow(color.g - targetColor.g, 2) +
+          Math.pow(color.b - targetColor.b, 2)
+        );
+        const edgeValue = edges.data[py * edges.cols + px];
+        const isEdge = edgeValue > 0;
+        if (colorDiff <= tolerance && !isEdge) {
+          mask[py][px] = true;
+          stack.push({ x: px + 1, y: py });
+          stack.push({ x: px - 1, y: py });
+          stack.push({ x: px, y: py + 1 });
+          stack.push({ x: px, y: py - 1 });
+        }
+      }
+      let minX = targetFrame.width, maxX = 0, minY = targetFrame.height, maxY = 0;
+      for (let y = 0; y < targetFrame.height; y++) {
+        for (let x = 0; x < targetFrame.width; x++) {
+          if (mask[y][x]) {
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+      src.delete(); gray.delete(); blurred.delete(); edges.delete();
+      const width = maxX - minX + 1;
+      const height = maxY - minY + 1;
+      if (width < 5 || height < 5) return;
+      const newSelection = { x: targetFrame.x + minX, y: targetFrame.y + minY, width, height };
+      const previousFrame = frames[frameIndex];
+      manualSelections[frameIndex] = newSelection;
+      const newFrameCanvas = document.createElement('canvas');
+      const newFrameCtx = newFrameCanvas.getContext('2d');
+      newFrameCanvas.width = width;
+      newFrameCanvas.height = height;
+      newFrameCtx.drawImage(spriteImage, newSelection.x, newSelection.y, width, height, 0, 0, width, height);
+      const frameData = newFrameCanvas.toDataURL('image/png');
+      frames[frameIndex] = frameData;
+      addToHistory({
+        type: 'magic-wand',
+        index: frameIndex,
+        previousFrame,
+        previousSelection: targetFrame,
+        newFrame: frameData,
+        newSelection
+      });
+      updatePreview();
+      drawCanvas();
+    }
+
+    function updateFrame(index) {
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      const rect = selections[index];
+      const frameCanvas = document.createElement('canvas');
+      const frameCtx = frameCanvas.getContext('2d');
+      frameCanvas.width = rect.width;
+      frameCanvas.height = rect.height;
+      frameCtx.drawImage(spriteImage, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+      const frameData = frameCanvas.toDataURL('image/png');
+      frames[index] = frameData;
+      addToHistory({
+        type: 'update-frame',
+        index,
+        previousFrame: frames[index],
+        previousSelection: { ...selections[index] },
+        newFrame: frameData,
+        newSelection: { ...rect }
+      });
+      updatePreview();
+    }
+
+    function undoLastSelection() {
+      if (mode !== 'manual' || manualSelections.length === 0) return;
+      const lastSelection = manualSelections.pop();
+      const lastFrame = frames.pop();
+      addToHistory({ type: 'delete-frame', index: frames.length, frame: lastFrame, selection: lastSelection });
+      updatePreview();
+      drawCanvas();
+    }
+
+    function addToHistory(action) {
+      history = history.slice(0, historyIndex + 1);
+      history.push(action);
+      historyIndex++;
+      updateStatusBar();
+    }
+
+    function undo() {
+      if (historyIndex < 0) return;
+      const action = history[historyIndex];
+      if (action.type === 'add-frame') {
+        frames.pop();
+        if (mode === 'manual') manualSelections.pop();
+        else autoSelections.pop();
+      } else if (action.type === 'delete-frame') {
+        frames.splice(action.index, 0, action.frame);
+        if (mode === 'manual') manualSelections.splice(action.index, 0, action.selection);
+        else autoSelections.splice(action.index, 0, action.selection);
+      } else if (action.type === 'finishing') {
+        frames = action.previousFrames.slice();
+        if (mode === 'manual') manualSelections = action.previousSelections.slice();
+        else autoSelections = action.previousSelections.slice();
+      } else if (action.type === 'update-frame' || action.type === 'magic-wand' || action.type === 'rotate' || action.type === 'flip' || action.type === 'crop') {
+        frames[action.index] = action.previousFrame;
+        if (mode === 'manual') manualSelections[action.index] = action.previousSelection;
+        else autoSelections[action.index] = action.previousSelection;
+      }
+      historyIndex--;
+      updatePreview();
+      drawCanvas();
+      updateStatusBar();
+    }
+
+    function redo() {
+      if (historyIndex >= history.length - 1) return;
+      historyIndex++;
+      const action = history[historyIndex];
+      if (action.type === 'add-frame') {
+        frames.push(action.frame);
+        if (mode === 'manual') manualSelections.push(action.selection);
+        else autoSelections.push(action.selection);
+      } else if (action.type === 'delete-frame') {
+        frames.splice(action.index, 1);
+        if (mode === 'manual') manualSelections.splice(action.index, 1);
+        else autoSelections.splice(action.index, 1);
+      } else if (action.type === 'finishing') {
+        frames = action.newFrames.slice();
+        if (mode === 'manual') manualSelections = action.newSelections.slice();
+        else autoSelections = action.newSelections.slice();
+      } else if (action.type === 'update-frame' || action.type === 'magic-wand' || action.type === 'rotate' || action.type === 'flip' || action.type === 'crop') {
+        frames[action.index] = action.newFrame;
+        if (mode === 'manual') manualSelections[action.index] = action.newSelection;
+        else autoSelections[action.index] = action.newSelection;
+      }
+      updatePreview();
+      drawCanvas();
+      updateStatusBar();
+    }
+
+    function updateStatusBar() {
+      const canUndo = historyIndex >= 0;
+      const canRedo = historyIndex < history.length - 1;
+      status.textContent = `Mode: ${mode.toUpperCase()} | Frames: ${frames.length} | Undo: ${canUndo ? 'Y' : 'N'} | Redo: ${canRedo ? 'Y' : 'N'}`;
+    }
+
+    function updatePreview() {
+      previewSection.innerHTML = '';
+      frames.forEach((frameData, index) => {
+        const frameContainer = document.createElement('div');
+        frameContainer.className = 'frame-container';
+        const img = document.createElement('img');
+        img.src = frameData;
+        img.dataset.index = index;
+        if (index === selectedFrameIndex) img.classList.add('selected');
+        img.addEventListener('click', () => openSelectionWindow(index));
+        frameContainer.appendChild(img);
+        previewSection.appendChild(frameContainer);
+      });
+      updateStatusBar();
+    }
+
+    function openSelectionWindow(index) {
+      currentSelectionIndex = index;
+      selectedFrameIndex = index;
+      const frameData = frames[index];
+      const img = new Image();
+      img.src = frameData;
+      img.onload = () => {
+        selectionCanvas.width = img.width;
+        selectionCanvas.height = img.height;
+        selectionCtx.drawImage(img, 0, 0);
+        selectionCropRect = { x: 0, y: 0, width: img.width, height: img.height };
+        updateCornerHandles();
+        selectionWindow.style.display = 'block';
+        resetColorAdjustments(false);
+        adjustColors();
+        updatePreview();
+      };
+    }
+
+    function updateCornerHandles() {
+      cornerHandles.innerHTML = '';
+      if (!selectionCropRect) return;
+      const handles = [
+        { id: 'top-left', x: selectionCropRect.x, y: selectionCropRect.y },
+        { id: 'top-right', x: selectionCropRect.x + selectionCropRect.width, y: selectionCropRect.y },
+        { id: 'bottom-left', x: selectionCropRect.x, y: selectionCropRect.y + selectionCropRect.height },
+        { id: 'bottom-right', x: selectionCropRect.x + selectionCropRect.width, y: selectionCropRect.y + selectionCropRect.height }
+      ];
+      handles.forEach(handle => {
+        const div = document.createElement('div');
+        div.className = 'corner-handle';
+        div.id = handle.id;
+        div.style.left = `${handle.x - 4}px`;
+        div.style.top = `${handle.y - 4}px`;
+        div.addEventListener('mousedown', (e) => startDraggingHandle(e, handle.id));
+        cornerHandles.appendChild(div);
+      });
+    }
+
+    function startDraggingHandle(e, cornerId) {
+      e.preventDefault();
+      isDragging = true;
+      selectedCorner = cornerId;
+      const moveHandler = (e) => {
+        if (!isDragging || !selectionCropRect) return;
+        const rect = selectionCanvas.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+        x = Math.max(0, Math.min(x, selectionCanvas.width));
+        y = Math.max(0, Math.min(y, selectionCanvas.height));
+        let newRect = { ...selectionCropRect };
+        if (cornerId === 'top-left') {
+          newRect.width = selectionCropRect.x + selectionCropRect.width - x;
+          newRect.height = selectionCropRect.y + selectionCropRect.height - y;
+          newRect.x = x;
+          newRect.y = y;
+        } else if (cornerId === 'top-right') {
+          newRect.width = x - selectionCropRect.x;
+          newRect.height = selectionCropRect.y + selectionCropRect.height - y;
+          newRect.y = y;
+        } else if (cornerId === 'bottom-left') {
+          newRect.width = selectionCropRect.x + selectionCropRect.width - x;
+          newRect.height = y - selectionCropRect.y;
+          newRect.x = x;
+        } else if (cornerId === 'bottom-right') {
+          newRect.width = x - selectionCropRect.x;
+          newRect.height = y - selectionCropRect.y;
+        }
+        if (newRect.width >= 5 && newRect.height >= 5) {
+          selectionCropRect = newRect;
+          redrawSelectionCanvas();
+          updateCornerHandles();
+        }
+      };
+      const upHandler = () => {
+        isDragging = false;
+        selectedCorner = null;
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', upHandler);
+      };
+      document.addEventListener('mousemove', moveHandler);
+      document.addEventListener('mouseup', upHandler);
+    }
+
+    function redrawSelectionCanvas() {
+      const frameData = frames[currentSelectionIndex];
+      const img = new Image();
+      img.src = frameData;
+      img.onload = () => {
+        selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+        selectionCtx.drawImage(img, 0, 0);
+        applyColorAdjustments();
+        if (selectionCropRect) {
+          selectionCtx.strokeStyle = '#ff00ff';
+          selectionCtx.lineWidth = 2;
+          selectionCtx.strokeRect(selectionCropRect.x, selectionCropRect.y, selectionCropRect.width, selectionCropRect.height);
+        }
+      };
+    }
+
+    function adjustColors() {
+      colorAdjustments.hue = parseInt(document.getElementById('hueAdjust').value);
+      colorAdjustments.saturation = parseInt(document.getElementById('saturationAdjust').value);
+      colorAdjustments.brightness = parseInt(document.getElementById('brightnessAdjust').value);
+      redrawSelectionCanvas();
+    }
+
+    function applyColorAdjustments() {
+      if (!colorAdjustments.hue && !colorAdjustments.saturation && !colorAdjustments.brightness) return;
+      const imageData = selectionCtx.getImageData(0, 0, selectionCanvas.width, selectionCanvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];
+        let g = data[i + 1];
+        let b = data[i + 2];
+        let [h, s, l] = rgbToHsl(r, g, b);
+        h = (h + colorAdjustments.hue / 360) % 1;
+        if (h < 0) h += 1;
+        s = Math.max(0, Math.min(1, s + colorAdjustments.saturation / 100));
+        l = Math.max(0, Math.min(1, l + colorAdjustments.brightness / 100));
+        [r, g, b] = hslToRgb(h, s, l);
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+      }
+      selectionCtx.putImageData(imageData, 0, 0);
+    }
+
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+      if (max === min) {
+        h = s = 0;
+      } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return [h, s, l];
+    }
+
+    function hslToRgb(h, s, l) {
+      let r, g, b;
+      if (s === 0) {
+        r = g = b = l;
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    function resetColorAdjustments(update = true) {
+      document.getElementById('hueAdjust').value = 0;
+      document.getElementById('saturationAdjust').value = 0;
+      document.getElementById('brightnessAdjust').value = 0;
+      colorAdjustments = { hue: 0, saturation: 0, brightness: 0 };
+      if (update) redrawSelectionCanvas();
+    }
+
+    function rotateFrame(degrees) {
+      const frameData = frames[currentSelectionIndex];
+      const img = new Image();
+      img.src = frameData;
+      img.onload = () => {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = degrees === 180 ? img.width : img.height;
+        tempCanvas.height = degrees === 180 ? img.height : img.width;
+        tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+        tempCtx.rotate(degrees * Math.PI / 180);
+        tempCtx.drawImage(img, -img.width / 2, -img.height / 2);
+        const newFrameData = tempCanvas.toDataURL('image/png');
+        const previousFrame = frames[currentSelectionIndex];
+        const previousSelection = { ...(mode === 'manual' ? manualSelections : autoSelections)[currentSelectionIndex] };
+        frames[currentSelectionIndex] = newFrameData;
+        const selections = mode === 'manual' ? manualSelections : autoSelections;
+        selections[currentSelectionIndex] = {
+          x: selections[currentSelectionIndex].x,
+          y: selections[currentSelectionIndex].y,
+          width: tempCanvas.width,
+          height: tempCanvas.height
+        };
+        addToHistory({
+          type: 'rotate',
+          index: currentSelectionIndex,
+          previousFrame,
+          previousSelection,
+          newFrame: newFrameData,
+          newSelection: { ...selections[currentSelectionIndex] }
+        });
+        selectionCanvas.width = tempCanvas.width;
+        selectionCanvas.height = tempCanvas.height;
+        selectionCtx.drawImage(tempCanvas, 0, 0);
+        selectionCropRect = { x: 0, y: 0, width: tempCanvas.width, height: tempCanvas.height };
+        updateCornerHandles();
+        adjustColors();
+        updatePreview();
+      };
+    }
+
+    function flipFrame(direction) {
+      const frameData = frames[currentSelectionIndex];
+      const img = new Image();
+      img.src = frameData;
+      img.onload = () => {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        tempCtx.translate(direction === 'horizontal' ? img.width : 0, direction === 'vertical' ? img.height : 0);
+        tempCtx.scale(direction === 'horizontal' ? -1 : 1, direction === 'vertical' ? -1 : 1);
+        tempCtx.drawImage(img, 0, 0);
+        const newFrameData = tempCanvas.toDataURL('image/png');
+        const previousFrame = frames[currentSelectionIndex];
+        frames[currentSelectionIndex] = newFrameData;
+        addToHistory({
+          type: 'flip',
+          index: currentSelectionIndex,
+          previousFrame,
+          newFrame: newFrameData,
+          previousSelection: { ...(mode === 'manual' ? manualSelections : autoSelections)[currentSelectionIndex] },
+          newSelection: { ...(mode === 'manual' ? manualSelections : autoSelections)[currentSelectionIndex] }
+        });
+        selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+        selectionCtx.drawImage(tempCanvas, 0, 0);
+        adjustColors();
+        updatePreview();
+      };
+    }
+
+    function cropSelection() {
+      if (!selectionCropRect) return;
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = selectionCropRect.width;
+      tempCanvas.height = selectionCropRect.height;
+      tempCtx.drawImage(
+        selectionCanvas,
+        selectionCropRect.x,
+        selectionCropRect.y,
+        selectionCropRect.width,
+        selectionCropRect.height,
+        0,
+        0,
+        selectionCropRect.width,
+        selectionCropRect.height
+      );
+      const newFrameData = tempCanvas.toDataURL('image/png');
+      const previousFrame = frames[currentSelectionIndex];
+      const previousSelection = { ...(mode === 'manual' ? manualSelections : autoSelections)[currentSelectionIndex] };
+      frames[currentSelectionIndex] = newFrameData;
+      const selections = mode === 'manual' ? manualSelections : autoSelections;
+      selections[currentSelectionIndex] = {
+        x: selections[currentSelectionIndex].x + selectionCropRect.x,
+        y: selections[currentSelectionIndex].y + selectionCropRect.y,
+        width: selectionCropRect.width,
+        height: selectionCropRect.height
+      };
+      addToHistory({
+        type: 'crop',
+        index: currentSelectionIndex,
+        previousFrame,
+        previousSelection,
+        newFrame: newFrameData,
+        newSelection: { ...selections[currentSelectionIndex] }
+      });
+      selectionCanvas.width = selectionCropRect.width;
+      selectionCanvas.height = selectionCropRect.height;
+      selectionCtx.drawImage(tempCanvas, 0, 0);
+      selectionCropRect = { x: 0, y: 0, width: selectionCropRect.width, height: selectionCropRect.height };
+      updateCornerHandles();
+      updatePreview();
+      closeSelectionWindow();
+    }
+
+    function closeSelectionWindow() {
+      selectionWindow.style.display = 'none';
+      currentSelectionIndex = null;
+      selectionCropRect = null;
+      selectedFrameIndex = null;
+    }
+
+    function toggleCustomSize() {
+      const template = document.getElementById('frameSizeTemplate').value;
+      const customInputs = document.getElementById('customSizeInputs');
+      customInputs.style.display = template === 'custom' ? 'block' : 'none';
+      updateFinishingPreview();
+    }
+
+    function openFinishingWindow() {
+      if (frames.length === 0) return;
+      finishingWindow.style.display = 'block';
+      updateFinishingPreview();
+    }
+
+    function updateFinishingPreview() {
+      const template = document.getElementById('frameSizeTemplate').value;
+      const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+      let targetWidth, targetHeight;
+      if (template === 'custom') {
+        targetWidth = parseInt(document.getElementById('customWidth').value);
+        targetHeight = parseInt(document.getElementById('customHeight').value);
+      } else {
+        const sizes = {
+          'gameboy_16x16': [16, 16],
+          'nes_8x8': [8, 8]
+        };
+        [targetWidth, targetHeight] = sizes[template] || [16, 16];
+      }
+      targetWidth *= scaleFactor;
+      targetHeight *= scaleFactor;
+
+      const sampleFrame = frames[0];
+      const img = new Image();
+      img.src = sampleFrame;
+      img.onload = () => {
+        const aspectRatio = img.width / img.height;
+        let newWidth = targetWidth;
+        let newHeight = targetHeight;
+        if (aspectRatio > targetWidth / targetHeight) {
+          newHeight = targetWidth / aspectRatio;
+        } else {
+          newWidth = targetHeight * aspectRatio;
+        }
+        finishingPreviewCanvas.width = targetWidth;
+        finishingPreviewCanvas.height = targetHeight;
+        finishingPreviewCtx.clearRect(0, 0, targetWidth
+        finishingPreviewCtx.clearRect(0, 0, targetWidth, targetHeight);
+        finishingPreviewCtx.imageSmoothingEnabled = false;
+        const offsetX = (targetWidth - newWidth) / 2;
+        const offsetY = (targetHeight - newHeight) / 2;
+        finishingPreviewCtx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+      };
+    }
+
+    function applyFinishing() {
+      const template = document.getElementById('frameSizeTemplate').value;
+      const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+      let targetWidth, targetHeight;
+      if (template === 'custom') {
+        targetWidth = parseInt(document.getElementById('customWidth').value);
+        targetHeight = parseInt(document.getElementById('customHeight').value);
+      } else {
+        const sizes = {
+          'gameboy_16x16': [16, 16],
+          'nes_8x8': [8, 8]
+        };
+        [targetWidth, targetHeight] = sizes[template] || [16, 16];
+      }
+      targetWidth *= scaleFactor;
+      targetHeight *= scaleFactor;
+
+      const previousFrames = frames.slice();
+      const previousSelections = (mode === 'manual' ? manualSelections : autoSelections).slice();
+      const newFrames = [];
+      const newSelections = [];
+
+      frames.forEach((frameData, index) => {
+        const img = new Image();
+        img.src = frameData;
+        img.onload = () => {
+          const aspectRatio = img.width / img.height;
+          let newWidth = targetWidth;
+          let newHeight = targetHeight;
+          if (aspectRatio > targetWidth / targetHeight) {
+            newHeight = targetWidth / aspectRatio;
+          } else {
+            newWidth = targetHeight * aspectRatio;
+          }
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCanvas.width = targetWidth;
+          tempCanvas.height = targetHeight;
+          tempCtx.clearRect(0, 0, targetWidth, targetHeight);
+          tempCtx.imageSmoothingEnabled = false;
+          const offsetX = (targetWidth - newWidth) / 2;
+          const offsetY = (targetHeight - newHeight) / 2;
+          tempCtx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+          const newFrameData = tempCanvas.toDataURL('image/png');
+          newFrames[index] = newFrameData;
+          const sel = (mode === 'manual' ? manualSelections : autoSelections)[index];
+          newSelections[index] = { ...sel, width: targetWidth, height: targetHeight };
+
+          if (index === frames.length - 1) {
+            frames = newFrames;
+            if (mode === 'manual') manualSelections = newSelections;
+            else autoSelections = newSelections;
+            addToHistory({
+              type: 'finishing',
+              previousFrames,
+              previousSelections,
+              newFrames,
+              newSelections
+            });
+            updatePreview();
+            drawCanvas();
+            closeFinishingWindow();
+          }
+        };
+      });
+    }
+
+    function closeFinishingWindow() {
+      finishingWindow.style.display = 'none';
+    }
+
+    function exportAsZip() {
+      if (frames.length === 0) return;
+      const zip = new JSZip();
+      frames.forEach((frameData, index) => {
+        const base64Data = frameData.split(',')[1];
+        zip.file(`frame_${index + 1}.png`, base64Data, { base64: true });
+      });
+      zip.generateAsync({ type: 'blob' }).then((content) => {
+        saveAs(content, 'sprite_frames.zip');
+      });
+    }
+
+    toggleWindow('controlPanel');
+    toggleWindow('workspace');
+    toggleWindow('frameViewer');
+    toggleWindow('actionsWindow');
+  </script>
+</body>
+</html>
