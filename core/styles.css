@@ -375,7 +375,7 @@ body {
   flex-direction: column;
   position: absolute;
   min-width: 320px;
-  max-width: 640px;
+  min-height: 200px;
   background-color: var(--primary);
   border: 0.1em solid var(--secondary);
   font-family: "Inconsolata", Menlo, Chicago, Geneva;
@@ -387,8 +387,64 @@ body {
   display: flex;
   flex-direction: column;
 }
+.window-pane {
+  box-sizing: border-box;
+  padding: 8px;          /* ← margin so content never hugs the chrome */
+  width: 100%;
+  height: calc(100% - 22px);
+  overflow: auto;        /* native scrollbars live here */
+  background: var(--primary);
+}
 .window.draggable {
   cursor: move;
+}
+/*────────────────  System-6 scrollbars for .window-pane  ───────────────*/
+
+/* 1 ▸ base colours for Firefox + Chromium “overlay” scrollbars */
+.window-pane {
+  /* (these two lines also apply to Firefox) */
+  scrollbar-width: thin;                                     /* firefox */
+  scrollbar-color: var(--secondary) var(--primary);          /* firefox */
+}
+
+/* 2 ▸ WebKit scrollbar track (vertical + horizontal) */
+.window-pane::-webkit-scrollbar {
+  width: 14px;                /* v-bar */
+  height: 14px;               /* h-bar */
+  background: var(--primary); /* light track */
+}
+
+/* 3 ▸ draggable thumb */
+.window-pane::-webkit-scrollbar-thumb {
+  background: var(--secondary);            /* mid-grey thumb */
+  border: 2px solid var(--primary);        /* inset border for 3-D effect */
+  border-radius: 1px;
+}
+
+/* 4 ▸ arrow buttons (use the icons already in core/icon/) */
+.window-pane::-webkit-scrollbar-button:vertical:start {
+  background: url("core/icon/scrollbar-up.svg") center no-repeat;
+  height: 14px;
+}
+.window-pane::-webkit-scrollbar-button:vertical:end {
+  background: url("core/icon/scrollbar-down.svg") center no-repeat;
+  height: 14px;
+}
+.window-pane::-webkit-scrollbar-button:horizontal:start {
+  background: url("core/icon/scrollbar-left.svg") center no-repeat;
+  width: 14px;
+}
+.window-pane::-webkit-scrollbar-button:horizontal:end {
+  background: url("core/icon/scrollbar-right.svg") center no-repeat;
+  width: 14px;
+}
+
+/* optional: hide the blank “increment/decrement” gaps some browsers add */
+.window-pane::-webkit-scrollbar-button:vertical:single-button:increment,
+.window-pane::-webkit-scrollbar-button:vertical:single-button:decrement,
+.window-pane::-webkit-scrollbar-button:horizontal:single-button:increment,
+.window-pane::-webkit-scrollbar-button:horizontal:single-button:decrement {
+  display: block;   /* ensure arrow buttons always visible */
 }
 
 /* Modem Dialog */
@@ -401,7 +457,6 @@ body {
   border: 0.1em solid var(--secondary);
   box-shadow: var(--box-shadow), 0 0 10px rgba(147, 112, 219, 0.3);
   resize: both;
-  overflow: hidden;
 }
 .modal-dialog .title-bar {
   border-bottom: 0.1rem solid var(--secondary);

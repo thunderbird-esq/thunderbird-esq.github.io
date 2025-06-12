@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIG GIFS LAB</title>
+  <style>
+    body {
+      font-family: "Courier New", monospace;
+      background-color: #000;
+      color: #0F0;
+      text-align: center;
+      font-size: 10px;
+    }
+    input, button, select {
+      font-family: "Courier New", monospace;
+      font-size: 10px;
+      margin: 4px;
+      padding: 2px;
+    }
+    #preview {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas.preview-img {
+      border: 1px solid #0F0;
+    }
+    .frame-number {
+      color: #FF00FF;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>BIG GIFS LAB</h1>
+
+  <div>
+    <label>📂 IMAGE SEQUENCE:</label>
+    <input type="file" id="imageInput" multiple accept="image/*"><br><br>
+
+    <label>🧩 SPRITE SHEET:</label>
+    <input type="file" id="spriteSheetInput" accept="image/*"><br>
+    <label>Frame Width:</label><input type="number" id="spriteWidth" value="32">
+    <label>Frame Height:</label><input type="number" id="spriteHeight" value="32">
+    <button onclick="processSpriteSheet()">Slice Sprite Sheet</button>
+  </div>
+
+  <div>
+    <label>Width:</label><input type="number" id="cellWidth" value="100">
+    <label>Height:</label><input type="number" id="cellHeight" value="100"><br>
+    <label>FPS:</label><input type="number" id="frameRate" value="2"><br>
+    <button onclick="createGIF()">Create GIF</button>
+  </div>
+
+  <div id="preview"></div>
+  <div>
+    <img id="gifPreview" style="margin-top: 20px; max-width: 320px;">
+    <br>
+    <button id="downloadButton" style="display:none" onclick="downloadGIF()">Download GIF</button>
+  </div>
+
+  <script src="gif.js"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const spriteSheetInput = document.getElementById('spriteSheetInput');
+    const spriteWidthInput = document.getElementById('spriteWidth');
+    const spriteHeightInput = document.getElementById('spriteHeight');
+    const preview = document.getElementById('preview');
+    const gifPreview = document.getElementById('gifPreview');
+    const downloadButton = document.getElementById('downloadButton');
+    const cellWidthInput = document.getElementById('cellWidth');
+    const cellHeightInput = document.getElementById('cellHeight');
+    const frameRateInput = document.getElementById('frameRate');
+    let images = [];
+    let gifBlob = null;
+
+    imageInput.addEventListener('change', function () {
+      const files = Array.from(this.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      let loaded = 0;
+      images = [];
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            images.push({ img, delay: 100, filter: 'none' });
+            loaded++;
+            if (loaded === files.length) renderPreviews();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function processSpriteSheet() {
+      const file = spriteSheetInput.files[0];
+      const frameWidth = parseInt(spriteWidthInput.value, 10);
+      const frameHeight = parseInt(spriteHeightInput.value, 10);
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          const cols = Math.floor(img.width / frameWidth);
+          const rows = Math.floor(img.height / frameHeight);
+          images = [];
+
+          for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              canvas.width = frameWidth;
+              canvas.height = frameHeight;
+              ctx.drawImage(img, x * frameWidth, y * frameHeight, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+              const frameImg = new Image();
+              frameImg.src = canvas.toDataURL();
+              images.push({ img: frameImg, delay: 100, filter: 'none' });
+            }
+          }
+          renderPreviews();
+        };
+        img.src = e.target.result;
+      };
+
+      if (file) reader.readAsDataURL(file);
+    }
+
+    function renderPreviews() {
+      preview.innerHTML = '';
+      const cellWidth = parseInt(cellWidthInput.value);
+      const cellHeight = parseInt(cellHeightInput.value);
+
+      images.forEach((frame, index) => {
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+        ctx.drawImage(frame.img, 0, 0, cellWidth, cellHeight);
+        canvas.className = 'preview-img';
+
+        const label = document.createElement('div');
+        label.className = 'frame-number';
+        label.textContent = `Frame ${index + 1}`;
+
+        item.appendChild(canvas);
+        item.appendChild(label);
+        preview.appendChild(item);
+      });
+    }
+
+    function createGIF() {
+      const cellWidth = parseInt(cellWidthInput.value);
+      const cellHeight = parseInt(cellHeightInput.value);
+      const delay = 1000 / parseInt(frameRateInput.value, 10);
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: cellWidth,
+        height: cellHeight,
+        workerScript: 'gif.worker.js'
+      });
+
+      images.forEach(frame => {
+        const canvas = document.createElement('canvas');
+        canvas.width = cellWidth;
+        canvas.height = cellHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(frame.img, 0, 0, cellWidth, cellHeight);
+        gif.addFrame(canvas, { delay: frame.delay || delay });
+      });
+
+      gif.on('finished', function(blob) {
+        gifBlob = blob;
+        gifPreview.src = URL.createObjectURL(blob);
+        downloadButton.style.display = 'inline-block';
+      });
+
+      gif.render();
+    }
+
+    function downloadGIF() {
+      if (gifBlob) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(gifBlob);
+        a.download = "big-gif.gif";
+        a.click();
+      }
+    }
+  </script>
+</body>
+</html>

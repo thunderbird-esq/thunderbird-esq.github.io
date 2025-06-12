@@ -78,6 +78,14 @@
         <img src="core/icon/bbs-icon.svg" alt="THUNDERBIRD BBS Icon">
         <span>THUNDERBIRD BBS</span>
       </div>
+        <div class="desktop-icon" onclick="TB.apps.find(a => a.id === 'big-gifs').mount()">
+    <img src="core/icon/big-gifs.svg" alt="BIG GIFS">
+    <span>BIG GIFS</span>
+  </div>
+  <div class="desktop-icon" onclick="TB.apps.find(a => a.id === 'sprite-slicer').mount()">
+    <img src="core/icon/sprite-slicer.svg" alt="SPRITE SLICER">
+    <span>SPRITE SLICER</span>
+  </div>
     </div>
 
     <!-- Modem Sequence Window -->
@@ -148,6 +156,8 @@
 <!-- Draggabilly -->
 <script src="core/ui/draggabilly.pkgd.min.js"></script>
 <!-- Main Script -->
+<script src="core/app-registry.js"></script>
+<script src="apps/register.js"></script>
 <script src="scripts/script.js"></script>
 </body>
 </html>
