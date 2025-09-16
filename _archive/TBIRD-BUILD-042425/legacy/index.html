@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>THUNDERBIRD BBS</title>
+  <meta name="GENERATOR" content="THUNDERBIRD BBS (C) 1989">
+  <style>
+    /**
+     * THUNDERBIRD BBS - Styled with System.css conventions
+     * Based on System.css by Sakun Acharige
+     */
+
+    /* Font Definitions */
+    @font-face {
+      font-family: Chicago;
+      src: url("fonts/ChicagoFLF.woff") format("woff"),
+           url("fonts/ChicagoFLF.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Chicago_12;
+      src: url("fonts/ChiKareGo2.woff") format("woff"),
+           url("fonts/ChiKareGo2.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Geneva_9;
+      src: url("fonts/FindersKeepers.woff") format("woff"),
+           url("fonts/FindersKeepers.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Monaco;
+      src: url("fonts/monaco.woff") format("woff"),
+           url("fonts/monaco.woff2") format("woff2");
+    }
+
+    /* CSS Variables */
+    :root {
+      --box-shadow: 2px 2px;
+      --element-spacing: 8px;
+      --grouped-element-spacing: 6px;
+      --radio-width: 12px;
+      --checkbox-width: 13px;
+      --radio-label-spacing: 6px;
+      --radio-total-width-precalc: calc(var(--radio-width) + var(--radio-label-spacing));
+      --radio-total-width: calc(var(--radio-total-width-precalc));
+      --radio-left: calc(-1 * var(--radio-total-width-precalc));
+      --radio-dot-width: 6px;
+      --radio-dot-top: calc(var(--radio-width) / 2 - var(--radio-dot-width) / 2);
+      --radio-dot-left: calc(-1 * var(--radio-total-width-precalc) + var(--radio-width) / 2 - var(--radio-dot-width) / 2);
+      --checkbox-total-width-precalc: calc(var(--checkbox-width) + var(--radio-label-spacing));
+      --checkbox-total-width: calc(var(--checkbox-total-width-precalc));
+      --checkbox-left: calc(-1 * var(--checkbox-total-width-precalc));
+      --checkmark-width: 12px;
+      --checkmark-top: 2px;
+      --checkmark-left: 2px;
+      --sys-color-white: #FFFFFF;
+      --sys-color-black: #000000;
+      --sys-color-grey: #A5A5A5;
+      --sys-color-darkgrey: #B6B7B8;
+      --primary: var(--sys-color-white);
+      --secondary: var(--sys-color-black);
+      --tertiary: var(--sys-color-grey);
+      --disabled: var(--sys-color-darkgrey);
+    }
+
+    /* Body */
+    body {
+      background: linear-gradient(90deg, var(--primary) 21px, transparent 1%) center,
+                  linear-gradient(var(--primary) 21px, transparent 1%) center,
+                  var(--secondary);
+      background-size: 22px 22px;
+      background-attachment: fixed;
+      margin: 0;
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: "Inconsolata", Menlo, Chicago, Geneva;
+      font-size: 18px;
+      letter-spacing: -0.025em;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 22px;
+      background-color: var(--primary);
+    }
+    ::-webkit-scrollbar-track {
+      background: linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%),
+                  linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%);
+      background-color: var(--primary);
+      background-size: 4px 4px;
+      background-position: 0 0, 2px 2px;
+      width: 10px;
+      border-left: 3px solid var(--secondary);
+    }
+    ::-webkit-scrollbar-thumb {
+      width: 20px;
+      box-sizing: content-box;
+      background-color: var(--primary);
+      border: 2px solid var(--secondary);
+      border-right: none;
+    }
+    ::-webkit-scrollbar-button:vertical:start {
+      background: url("icon/scrollbar-up.svg") no-repeat;
+      height: 23.38px;
+    }
+    ::-webkit-scrollbar-button:vertical:start:active {
+      background: url("icon/scrollbar-up-active.svg") no-repeat;
+    }
+    ::-webkit-scrollbar-button:vertical:end {
+      background: url("icon/scrollbar-down.svg") no-repeat;
+      height: 23.38px;
+    }
+    ::-webkit-scrollbar-button:vertical:end:active {
+      background: url("icon/scrollbar-down-active.svg") no-repeat;
+    }
+
+    /* Window */
+    .window {
+      flex-direction: column;
+      margin: 1rem;
+      min-width: 320px;
+      max-width: 640px;
+      background-color: var(--primary);
+      border: 0.1em solid var(--secondary);
+      font-family: "Inconsolata", Menlo, Chicago, Geneva;
+    }
+
+    /* Title Bar */
+    .title-bar {
+      display: flex;
+      align-items: center;
+      height: 1.5rem;
+      margin: 0.1rem 0;
+      padding: 0.2rem 0.1rem;
+      background: linear-gradient(var(--secondary) 50%, transparent 50%);
+      background-size: 6.6666666667% 13.3333333333%;
+      background-clip: content-box;
+    }
+    .title-bar .title {
+      padding: 0 0.5em;
+      margin: 0 auto;
+      font-size: 1.5rem;
+      font-weight: bold;
+      line-height: 1.1;
+      text-align: center;
+      background: var(--primary);
+      cursor: default;
+      font-family: Chicago_12;
+    }
+    .title-bar button {
+      position: relative;
+      display: block;
+      width: 40px;
+      height: 40px;
+      margin: 0 0.2rem;
+      border: 4px solid var(--secondary);
+      background-color: var(--primary);
+      cursor: pointer;
+      transform: scale(0.5);
+    }
+    .title-bar button.close::before, .title-bar button.close::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      opacity: 0;
+    }
+    .title-bar button.close::before {
+      background: linear-gradient(var(--secondary) 0%, var(--secondary) 100%) left center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) right center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center top,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center bottom;
+      background-size: 30% 4px, 30% 4px, 4px 30%, 4px 30%;
+      background-repeat: no-repeat;
+    }
+    .title-bar button.close::after {
+      background: linear-gradient(var(--secondary) 0%, var(--secondary) 100%) left center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) right center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center top,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center bottom;
+      background-size: 22.5% 3.6363636364px, 22.5% 3.6363636364px, 3.6363636364px 22.5%, 3.6363636364px 22.5%;
+      background-repeat: no-repeat;
+      transform: rotate(45deg) scale(1.1);
+    }
+    .title-bar button.close:active::before, .title-bar button.close:active::after {
+      opacity: 1;
+    }
+    .title-bar button.resize {
+      background: linear-gradient(var(--secondary) 0%, var(--secondary) 100%) left 58%,
+                 linear-gradient(to bottom, var(--secondary) 0%, var(--secondary) 100%) 58% top;
+      background-size: 60% 4px, 4px 60%;
+      background-repeat: no-repeat;
+      background-color: var(--primary);
+    }
+    .title-bar button.resize:active {
+      background: var(--primary);
+    }
+
+    /* Separator */
+    .separator {
+      flex: none;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      border-top: 0.1rem solid var(--secondary);
+      border-width: 0.1rem 0;
+    }
+
+    /* Window Pane */
+    .window-pane {
+      overflow-y: auto;
+      padding: 1rem 2rem;
+      font-size: 18px;
+      letter-spacing: -0.025em;
+    }
+    .window-pane::-webkit-scrollbar {
+      width: 22px;
+      background-color: var(--primary);
+    }
+    .window-pane::-webkit-scrollbar-track {
+      background: linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%),
+                  linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%);
+      background-color: var(--primary);
+      background-size: 4px 4px;
+      background-position: 0 0, 2px 2px;
+      width: 10px;
+      border-left: 4px solid var(--secondary);
+    }
+    .window-pane::-webkit-scrollbar-thumb {
+      width: 20px;
+      box-sizing: content-box;
+      background-color: var(--primary);
+      border: 2px solid var(--secondary);
+      border-right: none;
+    }
+
+    /* Buttons */
+    .btn, .btn-default {
+      min-height: 20px;
+      min-width: 59px;
+      padding: 0 20px;
+      background: var(--primary);
+      border-style: solid;
+      border-width: 5.5px;
+      border-image: url("icon/button.svg") 30 stretch;
+      color: var(--secondary);
+      text-align: center;
+      text-decoration: none;
+      font-size: 18px;
+      font-family: Chicago_12;
+      cursor: pointer;
+    }
+    .btn:active {
+      background: var(--secondary);
+      border-radius: 6px;
+      color: var(--primary);
+    }
+    .btn:disabled {
+      color: var(--disabled);
+    }
+    .btn-default {
+      border-image: url("icon/button-default.svg") 60 stretch;
+      border-width: 0.5em;
+    }
+    .btn-default:active {
+      border-radius: 12px;
+    }
+
+    /* Input */
+    input[type="text"] {
+      border: 1.5px solid var(--secondary);
+      font-family: Chicago_12;
+      font-size: 18px;
+      padding-left: 5px;
+    }
+    input[type="text"]:focus-visible {
+      background: var(--secondary);
+      color: var(--primary);
+      outline: none;
+    }
+
+    /* Menu Bar */
+    ul[role="menu-bar"] {
+      display: flex;
+      background: var(--primary);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      cursor: pointer;
+      font-family: Chicago_12;
+      font-size: 1em;
+    }
+    ul[role="menu-bar"] > [role="menu-item"] {
+      position: relative;
+      padding: 6px 10px;
+    }
+    ul[role="menu-bar"] > [role="menu-item"]:hover,
+    ul[role="menu-bar"] > [role="menu-item"]:focus {
+      background: var(--secondary);
+      color: var(--primary);
+      outline: none;
+    }
+    ul[role="menu"] {
+      display: none;
+      position: absolute;
+      min-width: 200px;
+      background: var(--primary);
+      color: var(--secondary);
+      border: 1px solid var(--secondary);
+      box-shadow: var(--box-shadow);
+      padding: 0;
+      margin: 0;
+      z-index: 100;
+    }
+    ul[role="menu"]::before {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      left: 28px;
+      width: 2px;
+      box-shadow: inset 1px 0 rgba(0, 0, 0, 0.15), inset -1px 0 var(--primary);
+    }
+    ul[role="menu"] > [role="menu-item"] > a {
+      all: unset;
+      position: relative;
+      padding: 5px 20px;
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    ul[role="menu"] > [role="menu-item"] > a:hover,
+    ul[role="menu"] > [role="menu-item"] > a:focus {
+      background: var(--secondary);
+      color: var(--primary);
+    }
+    ul[role="menu-item"].divider::after {
+      content: "";
+      pointer-events: none;
+      display: block;
+      padding: 0;
+      border-top: 1.5px dotted var(--secondary);
+    }
+
+    /* Field Row */
+    .field-row {
+      display: flex;
+      align-items: center;
+      font-family: Chicago_12;
+      font-size: 1em;
+    }
+    .field-row > * + * {
+      margin-left: var(--grouped-element-spacing);
+    }
+    .modeless-text {
+      font-family: Chicago_12;
+      font-size: 1em;
+      font-weight: normal;
+    }
+
+    /* BBS-Specific Styles */
+    #modem-sequence {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999;
+    }
+    #modem-text {
+      color: #00FF00;
+      font-family: Monaco, monospace;
+      white-space: pre-wrap;
+    }
+    .message-area {
+      height: 300px;
+      overflow-y: auto;
+      font-family: Monaco, monospace;
+      white-space: pre-wrap;
+      line-height: 1.2;
+    }
+    .banner-container {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+      font-family: Monaco, monospace;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .welcome-box {
+      text-align: center;
+      margin: 20px auto;
+    }
+    .welcome-box-inner {
+      display: inline-block;
+      padding: 10px;
+      background: var(--primary);
+      border: 2px solid var(--secondary);
+      font-family: Monaco, monospace;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 600px) {
+      .banner-container {
+        font-size: 6px;
+      }
+      .window {
+        margin: 0.5rem;
+        min-width: 280px;
+      }
+    }
+
+    /* CRT Flicker Animation */
+    @keyframes crt-flicker {
+      0% { opacity: 0.9; }
+      100% { opacity: 1; }
+    }
+    .message-area {
+      animation: crt-flicker 0.1s infinite alternate;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fake Modem Sequence -->
+  <div id="modem-sequence" class="window">
+    <div class="window-pane" id="modem-text"></div>
+  </div>
+
+  <!-- Main BBS Interface -->
+  <div id="bbs-interface" class="window" style="display:none;">
+    <div class="title-bar">
+      <button aria-label="Close" class="close"></button>
+      <h1 class="title">THUNDERBIRD BBS</h1>
+      <button aria-label="Resize" class="resize"></button>
+    </div>
+    <div class="separator"></div>
+
+    <ul role="menu-bar">
+      <li role="menu-item" tabindex="0" aria-haspopup="true">
+        File
+        <ul role="menu">
+          <li role="menu-item"><a href="#login" style="text-decoration:none; color:inherit;">Login</a></li>
+          <li role="menu-item"><a href="#register" style="text-decoration:none; color:inherit;">Register</a></li>
+          <li role="menu-item" class="divider"></li>
+          <li role="menu-item"><a href="#exit" style="text-decoration:none; color:inherit;">Exit</a></li>
+        </ul>
+      </li>
+      <li role="menu-item" tabindex="0" aria-haspopup="true">
+        Messages
+        <ul role="menu">
+          <li role="menu-item"><a href="#new" style="text-decoration:none; color:inherit;">New Post</a></li>
+          <li role="menu-item"><a href="#inbox" style="text-decoration:none; color:inherit;">Inbox</a></li>
+        </ul>
+      </li>
+      <li role="menu-item" tabindex="0" aria-haspopup="true" style="margin-left:auto;">
+        Special
+        <ul role="menu" style="right:0;">
+          <li role="menu-item"><a href="#settings" style="text-decoration:none; color:inherit;">Settings</a></li>
+          <li role="menu-item"><a href="#about" style="text-decoration:none; color:inherit;">About</a></li>
+        </ul>
+      </li>
+    </ul>
+
+    <div class="window-pane message-area" id="message-display">
+      <!-- Banner will be inserted here by JavaScript -->
+    </div>
+
+    <div class="separator"></div>
+    <div class="window-pane">
+      <div class="field-row">
+        <label for="bbs-command" class="modeless-text">COMMAND:</label>
+        <input id="bbs-command" type="text" placeholder="Type HELP">
+      </div>
+      <div class="field-row" style="justify-content: flex-end;">
+        <button class="btn">CLEAR</button>
+        <button class="btn btn-default">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Banner Generator
+    function createBanner() {
+      const asciiArt = `
+████████╗██╗  ██╗██╗   ██╗███╗   ██╗██████╗ ███████╗██████╗ ██████╗ ██╗██████╗ ██████╗ 
+╚══██╔══╝██║  ██║██║   ██║████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔══██╗██║██╔══██╗██╔══██╗
+   ██║   ███████║██║   ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝██████╔╝██║██████╔╝██║  ██║
+   ██║   ██╔══██║██║   ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗██╔══██╗██║██╔══██╗██║  ██║
+   ██║   ██║  ██║╚██████╔╝██║ ╚████║██████╔╝███████╗██║  ██║██████╔╝██║██║  ██║██████╔╝
+   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═╝╚═════╝
+`.trim();
+
+      return `
+        <div class="banner-container">${asciiArt}</div>
+        <div class="welcome-box">
+          <div class="welcome-box-inner">
+            ┌───────────────────────┐<br>
+            │   WELCOME TO THE BBS  │<br>
+            └───────────────────────┘
+          </div>
+        </div>
+      `;
+    }
+
+    // Modem Connection Sequence
+    function startModemSequence() {
+      const modemText = document.getElementById('modem-text');
+      const modemSequence = [
+        "ATZ",
+        "OK",
+        "ATDT555-1234",
+        "CONNECT 2400",
+        "NEGOTIATING PROTOCOL...",
+        "HANDSHAKE COMPLETE",
+        "LOGGING INTO SYSTEM...",
+        "CONNECTION ESTABLISHED"
+      ];
+
+      let step = 0;
+      function nextStep() {
+        if (step < modemSequence.length) {
+          modemText.innerHTML += modemSequence[step] + "<br>";
+          step++;
+          setTimeout(nextStep, 800);
+        } else {
+          document.getElementById('modem-sequence').style.display = 'none';
+          document.getElementById('bbs-interface').style.display = 'block';
+          document.getElementById('message-display').innerHTML = createBanner();
+        }
+      }
+      nextStep();
+    }
+
+    // BBS Command Handler
+    document.getElementById('bbs-command').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        const command = this.value.toUpperCase();
+        const terminal = document.getElementById('message-display');
+        
+        if (command === 'HELP') {
+          terminal.innerHTML += '\n\nCOMMANDS: HELP, LOGIN, LIST, QUIT';
+        } else if (command === 'LOGIN') {
+          terminal.innerHTML += '\n\nLOGIN FEATURE COMING SOON';
+        } else {
+          terminal.innerHTML += '\n\nUNKNOWN COMMAND';
+        }
+        
+        this.value = '';
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+    });
+
+    // Clear Button
+    document.querySelector('.btn:not(.btn-default)').addEventListener('click', function() {
+      document.getElementById('message-display').innerHTML = createBanner();
+    });
+
+    // Menu functionality
+    document.querySelectorAll('[aria-haspopup="true"]').forEach(menuItem => {
+      menuItem.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const menu = this.querySelector('ul[role="menu"]');
+        if (menu.style.display === 'block') {
+          menu.style.display = 'none';
+        } else {
+          document.querySelectorAll('ul[role="menu"]').forEach(m => {
+            m.style.display = 'none';
+          });
+          menu.style.display = 'block';
+        }
+      });
+    });
+
+    // Close menu when clicking elsewhere
+    document.addEventListener('click', function() {
+      document.querySelectorAll('ul[role="menu"]').forEach(menu => {
+        menu.style.display = 'none';
+      });
+    });
+
+    // Start Everything
+    window.onload = function() {
+      setTimeout(startModemSequence, 500);
+    };
+  </script>
+</body>
+</html>

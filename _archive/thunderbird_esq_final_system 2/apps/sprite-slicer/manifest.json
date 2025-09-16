@@ -1,0 +1,6 @@
+{
+  "name": "Sprite Slicer",
+  "icon": "icon.png",
+  "defaultSize": [512, 342],
+  "resizable": true
+}

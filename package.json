@@ -1,0 +1,28 @@
+{
+  "name": "thunderbird-esq-system6",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.3",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode development",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint \"src/**/*.{ts,vue}\" --max-warnings 0"
+  },
+  "dependencies": {
+    "vue": "3.5.21"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "8.44.0",
+    "@typescript-eslint/parser": "8.44.0",
+    "@vitejs/plugin-vue": "6.0.1",
+    "autoprefixer": "10.4.21",
+    "cssnano": "7.1.1",
+    "eslint": "9.35.0",
+    "postcss": "8.5.6",
+    "tailwindcss": "4.1.13",
+    "typescript": "5.9.2",
+    "vite": "7.1.5"
+  }
+}

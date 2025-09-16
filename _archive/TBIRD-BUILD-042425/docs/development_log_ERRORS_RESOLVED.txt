@@ -1,0 +1,88 @@
+BIG GIFS - Development Log (Nova & ChatGPT)
+===========================================
+
+🛠️ Project: BIG GIFS - Browser-Based GIF Creation Tool
+🌟 Developer: Nova
+🤖 Partner-in-code: ChatGPT
+
+------------------------------------------------------------
+PHASE 1–4: Completed Highlights
+------------------------------------------------------------
+✔ Upload image sequences
+✔ Preview frame grid (4 across)
+✔ Cell width/height + FPS controls
+✔ Drag-and-drop frame reordering
+✔ Per-frame filter, delay, duplication, deletion
+✔ Output GIF preview (play/pause, seek, frame counter)
+✔ GIF export & download (looping)
+✔ Auto-fill dimensions from imported frames
+✔ Save/load project as JSON
+✔ Retro aesthetic: centered Courier layout, delete button color-coded
+✔ Basic filters: grayscale, invert, sepia
+✔ Retro palette filters: Game Boy, CGA, NES, PICO-8 (via nearest color matching)
+
+------------------------------------------------------------
+PHASE 5: In Progress — Ratio + Scaling Controls
+------------------------------------------------------------
+
+✨ NEW FEATURES BEING IMPLEMENTED:
+
+➤ Scaling Options Dropdown
+   - Under width/height inputs
+   - Options: 1x, 2x, 3x, 4x
+   - Adjusts dimensions proportionally to original imported frame size
+
+➤ Retro Sprite Size Presets
+   - Game Boy, NES, SNES (8x8, 16x16), Sega Genesis (8x8)
+   - Populates width/height fields with classic console sprite sizes
+
+➤ Ratio Presets
+   - 1:1, 4:3, 16:9 — applied dynamically
+   - Applies resizing while maintaining or enforcing correct ratio
+
+➤ Retro Filter Integration Fixes
+   - Properly applies palettes using nearest-color logic on pixel data
+
+------------------------------------------------------------
+DETAILED ERROR RESOLUTION HISTORY
+------------------------------------------------------------
+
+❌ Error: “`createGIF is not defined`”
+🛠 Fix: Function declaration block was unintentionally overwritten during early script reorganization. We traced the function binding back to the `onclick` handler and restored the full `createGIF()` logic, making sure it appeared in the correct script block after variable declarations.
+
+❌ Error: “`Uncaught ReferenceError: seekFrame is not defined`”
+🛠 Fix: This was due to inconsistent function registration order. We resolved it by ensuring `seekFrame()` was declared above the `onclick` bindings and accessible at runtime. The fix involved proper hoisting and refactoring frame navigation logic to always bind after DOM elements were registered.
+
+❌ Error: Retro filters not applying (Game Boy, CGA, NES, PICO-8)
+🛠 Fix: The filters were visible in the dropdown but not processed in the canvas rendering logic. The bug was caused by a missing call to apply the color remapping via a utility function (`getClosestColor`). We resolved this by parsing the imported palette JSON and modifying imageData directly for each canvas frame before rendering.
+
+❌ Error: gif.worker.js CORS failure (SecurityError on localhost)
+🛠 Fix: External CDNs (e.g., jsDelivr) refused to serve the worker script locally, breaking GIF creation. We fixed this by downloading `gif.js` and `gif.worker.js`, placing them locally, and ensuring the HTML referenced them with relative paths (`./gif.js`, `./gif.worker.js`) instead of CDN links.
+
+❌ Error: Broken preview rendering after code merge
+🛠 Fix: During one merge, the call to `renderPreviews()` was inadvertently overwritten or omitted. This caused the preview grid and filters to vanish. We resolved it by preserving the image rendering lifecycle: (1) load images, (2) trigger `renderPreviews()`, (3) maintain UI bindings.
+
+❌ Broken per-frame delay + duplication
+🛠 Fix: Several handler callbacks were binding index references incorrectly (e.g., closure capturing loop variable `index`). We resolved it by wrapping button logic in functions and re-rendering previews after state changes to reflect the correct visual state.
+
+❌ Save/Load project logic wasn’t working
+🛠 Fix: The JSON schema wasn’t serializing images correctly. We changed it to store `img.src` for reload and made sure to rehydrate the full frame array with delays, filters, and dimensions on load. We also added checks to restore the UI state post-load.
+
+❌ Canvas performance warnings (getImageData slow)
+🛠 Fix: Chrome's warning about multiple readback operations was addressed by using `getContext('2d', { willReadFrequently: true })`. This small but important performance flag helps browsers optimize the canvas for frequent pixel reads.
+
+------------------------------------------------------------
+NEXT PHASES
+------------------------------------------------------------
+
+🔲 Advanced Filtering (brightness, contrast, glow)
+🔲 Per-frame cropping and zoom
+🔲 Export as sprite sheet (PNG)
+🔲 System 6-style pixel-art UI simulation
+🔲 Trash can drag-to-delete with animations
+🔲 Retro audio sync or timeline view (possible stretch goal)
+
+------------------------------------------------------------
+DEV NOTES
+------------------------------------------------------------
+Nova’s intuitive design choices and focus on functional UX have shaped this project into an advanced, creative tool. The log serves as a technical guidebook and archive of our debugging journey, ensuring each fix is documented for future reference and scalability.

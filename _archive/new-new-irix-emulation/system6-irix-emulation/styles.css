@@ -1,0 +1,92 @@
+body {
+  background-color: #d3d3d3; /* System 6 gray */
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAABBJREFUGFdjZGBg+A8EAAAA//8DAC4dBEMOAAAAAElFTkSuQmCC');
+  background-repeat: repeat;
+  margin: 0;
+  height: 100vh;
+  font-family: 'Chicago', sans-serif;
+  user-select: none;
+}
+
+.window {
+  position: absolute;
+  box-shadow: 2px 2px 0px #000;
+  border: 2px solid #000; /* mwm-like border */
+  z-index: 1;
+}
+
+.window.focused {
+  z-index: 100; /* Bring to front */
+  border-color: #000;
+  box-shadow: 3px 3px 0px #000;
+}
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.title-bar button {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  background-size: contain;
+}
+
+.close, .minimize, .maximize {
+  background: #fff;
+  border: 1px solid #000;
+}
+
+.desktop-icon {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  width: 60px;
+  text-align: center;
+}
+
+.desktop-icon svg {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+
+.desktop-icon span {
+  font-size: 12px;
+  color: #000;
+  background: #fff;
+  padding: 2px;
+  border: 1px solid #000;
+}
+
+#context-menu {
+  position: absolute;
+  z-index: 1000;
+}
+
+#context-menu.hidden {
+  display: none;
+}
+
+.toolchest {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+[role="menu"] {
+  display: none;
+  position: absolute;
+  background: #fff;
+  border: 1px solid #000;
+}
+
+[role="menu"][style*="display: block"] {
+  display: block !important;
+}

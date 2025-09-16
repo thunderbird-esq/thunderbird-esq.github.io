@@ -1,0 +1,21 @@
+body {
+  background-color: #d3d3d3; /* Light gray for System 6 desktop */
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAABBJREFUGFdjZGBg+A8EAAAA//8DAC4dBEMOAAAAAElFTkSuQmCC'); /* 8x8 pixel pattern */
+  background-repeat: repeat;
+  margin: 0;
+  height: 100vh;
+  font-family: 'Chicago', sans-serif; /* Fallback, though System.css includes Chicago */
+}
+
+.window {
+  position: absolute; /* Allow dragging */
+  box-shadow: 2px 2px 0px #000; /* System 6 window shadow */
+}
+
+.menu-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000; /* Ensure menu is above windows */
+}

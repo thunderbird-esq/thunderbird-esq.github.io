@@ -1,0 +1,33 @@
+
+:root{--border:#000;--bg:#c3c3c3;--highlight:#000;--shadow:#fff;--accent:#00ffff;--menu-height:18px;--titlebar-height:18px;--window-border:2px;font-family:"Chicago FLF",system-ui,sans-serif;font-size:14px;user-select:none;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;width:100%;background:var(--bg);color:#000;}
+.boot-screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.boot-screen .boot-logo{width:64px;height:64px;margin-bottom:1rem;}
+.thermometer{width:320px;height:6px;border:1px solid var(--border);}
+.thermometer .fill{height:100%;width:0;background:var(--border);}
+.hidden{display:none !important;}
+.desktop{width:100%;height:100%;position:relative;overflow:hidden;}
+.menu-bar{height:var(--menu-height);display:flex;align-items:center;background:var(--bg);border-bottom:1px solid var(--border);padding:0 4px;gap:10px;list-style:none;}
+.menu-bar li{cursor:default;padding:0 6px;}
+.menu-bar img{height:14px;vertical-align:middle;}
+.icon{position:absolute;width:64px;text-align:center;cursor:default;}
+.icon img{width:48px;height:48px;}
+.icon span{display:block;margin-top:4px;font-size:12px;}
+.window{position:absolute;border:var(--window-border) solid var(--border);background:#e0e0e0;display:flex;flex-direction:column;filter:drop-shadow(2px 2px 0 var(--border));}
+.title-bar{height:var(--titlebar-height);background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:0 2px;border-bottom:1px solid var(--border);cursor:move;}
+.title-bar .title{font-weight:bold;}
+.title-bar .controls{display:flex;gap:4px;}
+.title-bar button{width:12px;height:12px;border:1px solid var(--border);background:var(--bg);padding:0;cursor:pointer;}
+.title-bar button.close::before{content:"×";font-weight:bold;line-height:10px;font-size:10px;position:relative;top:-2px;left:-1px;}
+.content{flex:1;overflow:auto;padding:4px;background:#fff;}
+.list-row{display:flex;align-items:center;gap:4px;padding:2px 0;}
+.list-row img{width:14px;}
+.status-bar{height:var(--titlebar-height);border-top:1px solid var(--border);padding:0 4px;font-size:12px;display:flex;align-items:center;}
+.window.active{z-index:10;}
+.icon.selected img{outline:1px dashed var(--border);}
+.window:focus-visible{outline:none;}
+::-webkit-scrollbar{width:12px;height:12px;}
+::-webkit-scrollbar-thumb{background:var(--border);border:2px solid var(--bg);}
+::-webkit-scrollbar-track{background:var(--bg);}
+body,button,input,textarea{font-family:inherit;}

@@ -1,0 +1,29 @@
+
+/* Minimal System‑6 aesthetic baseline — no external deps */
+html,body{margin:0;padding:0;font-family:Chicago,Arial,Helvetica,sans-serif;
+background:#bfbfbf;color:#000;font-size:13px;user-select:none;height:100%;}
+/* Window frame */
+.window{position:absolute;background:#fff;border:2px solid #000;box-shadow:2px 2px #000;}
+.title-bar{background:#000;color:#fff;padding:2px 4px;cursor:move;display:flex;justify-content:space-between;align-items:center;font-weight:bold;}
+.title-bar button{background:#fff;border:1px solid #000;width:16px;height:16px;cursor:pointer;font-weight:bold;line-height:14px;padding:0;}
+.window-body{padding:6px;overflow:auto;background:#fff;}
+.window.focus{box-shadow:2px 2px var(--accent);border-color:var(--accent);}
+:root{--accent:#00ffff;}
+/* Menubar */
+.menu-bar{background:#d6d6d6;border-bottom:2px solid #000;height:20px;display:flex;align-items:center;gap:6px;padding:0 6px;overflow:hidden;}
+.menu{position:relative;padding:0 8px;cursor:pointer;}
+.menu:hover,.menu.active{background:#000;color:#fff;}
+.pull-menu{position:absolute;top:20px;left:0;background:#fff;border:1px solid #000;box-shadow:2px 2px #000;display:none;min-width:120px;z-index:1000;}
+.pull-menu.show{display:block;}
+.pull-item{padding:2px 8px;cursor:pointer;white-space:nowrap;}
+.pull-item:hover{background:#000;color:#fff;}
+.pull-item.disabled{opacity:.5;pointer-events:none;}
+.pull-sep{border-top:1px solid #000;margin:2px 0;}
+/* Desktop */
+.desktop{position:absolute;inset:20px 0 0 0;background:url('./assets/icons/pattern.png') repeat;}
+/* Icons */
+.icon{position:absolute;width:48px;text-align:center;cursor:pointer;}
+.icon img{width:32px;height:32px;image-rendering:pixelated;}
+.icon span{display:block;font-size:11px;margin-top:2px;white-space:nowrap;}
+.icon.selected span{background:#000;color:#fff;}
+.drag-ghost{opacity:.6;pointer-events:none;z-index:2000;}

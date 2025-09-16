@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Agent LLM Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .message-user {
+      animation: slideInRight 0.3s ease-out;
+    }
+    .message-ai {
+      animation: slideInLeft 0.3s ease-out;
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideInLeft {
+      from { transform: translateX(-20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .typing-indicator::after {
+      content: '...';
+      animation: typing 1.5s infinite;
+      display: inline-block;
+      width: 20px;
+      text-align: left;
+    }
+    @keyframes typing {
+      0% { content: '.'; }
+      33% { content: '..'; }
+      66% { content: '...'; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+  <header class="bg-indigo-600 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Multi-Agent Chat</h1>
+      <div class="flex space-x-4">
+        <button id="settings-btn" class="p-2 rounded-full hover:bg-indigo-700 transition">
+          <i class="fas fa-cog"></i>
+        </button>
+        <button id="new-chat-btn" class="bg-indigo-500 px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+          <i class="fas fa-plus mr-2"></i> New Chat
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <div id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col">
+      <div class="p-4 border-b border-gray-200">
+        <h2 class="font-semibold text-gray-700">Chat Rooms</h2>
+      </div>
+      <div id="room-list" class="flex-1 overflow-y-auto p-2">
+        <div class="room-item p-3 rounded-lg hover:bg-gray-100 cursor-pointer flex items-center">
+          <i class="fas fa-comments text-indigo-500 mr-3"></i>
+          <span>General Discussion</span>
+        </div>
+        <div class="room-item p-3 rounded-lg hover:bg-gray-100 cursor-pointer flex items-center">
+          <i class="fas fa-code text-blue-500 mr-3"></i>
+          <span>Code Generation</span>
+        </div>
+        <div class="room-item p-3 rounded-lg hover:bg-gray-100 cursor-pointer flex items-center">
+          <i class="fas fa-image text-purple-500 mr-3"></i>
+          <span>Image Creation</span>
+        </div>
+      </div>
+      <div class="p-4 border-t border-gray-200">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+            <i class="fas fa-user"></i>
+          </div>
+          <span id="username" class="font-medium">Guest</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col">
+      <div id="chat-header" class="p-4 border-b border-gray-200 bg-white">
+        <h2 class="text-xl font-semibold">General Discussion</h2>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm">llama3</span>
+          <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">mistral</span>
+          <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">phi3</span>
+        </div>
+      </div>
+
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="message-ai max-w-3/4">
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium text-gray-700">llama3</div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mt-1">
+                Hello! I'm llama3, ready to assist you with any questions or tasks you have.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="message-user max-w-3/4 ml-auto">
+          <div class="flex items-start space-x-3 justify-end">
+            <div class="flex-1 text-right">
+              <div class="font-medium text-gray-700">You</div>
+              <div class="bg-indigo-500 text-white p-3 rounded-lg shadow-sm mt-1 inline-block">
+                Hi there! Can you help me with some code?
+              </div>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+              <i class="fas fa-user"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="message-ai max-w-3/4">
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium text-gray-700">mistral</div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mt-1">
+                Of course! I specialize in code generation and analysis. What programming language are you working with?
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="typing-indicator" class="hidden">
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium text-gray-700">phi3</div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mt-1 typing-indicator">
+                Thinking
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-gray-200 bg-white">
+        <div class="flex space-x-2">
+          <button id="image-btn" class="p-2 text-gray-500 hover:text-indigo-500 rounded-full hover:bg-gray-100">
+            <i class="fas fa-image"></i>
+          </button>
+          <button id="code-btn" class="p-2 text-gray-500 hover:text-indigo-500 rounded-full hover:bg-gray-100">
+            <i class="fas fa-code"></i>
+          </button>
+          <button id="file-btn" class="p-2 text-gray-500 hover:text-indigo-500 rounded-full hover:bg-gray-100">
+            <i class="fas fa-paperclip"></i>
+          </button>
+        </div>
+        <form id="message-form" class="mt-2 flex space-x-2">
+          <input 
+            id="message-input" 
+            type="text" 
+            placeholder="Type your message..." 
+            class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            autocomplete="off"
+          >
+          <button 
+            type="submit" 
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+          >
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const messageForm = document.getElementById('message-form');
+      const messageInput = document.getElementById('message-input');
+      const chatMessages = document.getElementById('chat-messages');
+      const typingIndicator = document.getElementById('typing-indicator');
+      const roomItems = document.querySelectorAll('.room-item');
+      const newChatBtn = document.getElementById('new-chat-btn');
+      const settingsBtn = document.getElementById('settings-btn');
+      const sidebar = document.getElementById('sidebar');
+      
+      // WebSocket connection
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}/ws/chat`);
+      
+      ws.onopen = () => {
+        console.log('Connected to chat server');
+      };
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'typing') {
+          typingIndicator.classList.remove('hidden');
+        } 
+        else if (data.type === 'message') {
+          typingIndicator.classList.add('hidden');
+          addMessage(data.sender, data.content, data.isUser);
+        }
+        else if (data.type === 'image') {
+          addImageMessage(data.sender, data.url);
+        }
+        else if (data.type === 'code') {
+          addCodeMessage(data.sender, data.code, data.language);
+        }
+      };
+      
+      ws.onclose = () => {
+        console.log('Disconnected from chat server');
+        setTimeout(() => {
+          // Attempt to reconnect
+          window.location.reload();
+        }, 3000);
+      };
+      
+      function addMessage(sender, content, isUser) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = isUser ? 'message-user max-w-3/4 ml-auto' : 'message-ai max-w-3/4';
+        
+        messageDiv.innerHTML = `
+          <div class="flex items-start space-x-3 ${isUser ? 'justify-end' : ''}">
+            ${!isUser ? `
+              <div class="w-8 h-8 rounded-full ${getAvatarColor(sender)} flex items-center justify-center text-white">
+                <i class="fas fa-robot"></i>
+              </div>
+            ` : ''}
+            <div class="flex-1 ${isUser ? 'text-right' : ''}">
+              <div class="font-medium text-gray-700">${isUser ? 'You' : sender}</div>
+              <div class="${isUser ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-100'} p-3 rounded-lg shadow-sm mt-1 ${isUser ? 'inline-block' : ''}">
+                ${content}
+              </div>
+            </div>
+            ${isUser ? `
+              <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+                <i class="fas fa-user"></i>
+              </div>
+            ` : ''}
+          </div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      function addImageMessage(sender, url) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message-ai max-w-3/4';
+        
+        messageDiv.innerHTML = `
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full ${getAvatarColor(sender)} flex items-center justify-center text-white">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium text-gray-700">${sender}</div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mt-1">
+                <img src="${url}" alt="Generated image" class="rounded-lg max-w-full h-auto">
+              </div>
+            </div>
+          </div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      function addCodeMessage(sender, code, language) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message-ai max-w-3/4';
+        
+        messageDiv.innerHTML = `
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full ${getAvatarColor(sender)} flex items-center justify-center text-white">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium text-gray-700">${sender}</div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mt-1">
+                <div class="bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto">
+                  <pre><code class="language-${language}">${code}</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      function getAvatarColor(sender) {
+        const colors = {
+          'llama3': 'bg-blue-500',
+          'mistral': 'bg-green-500',
+          'phi3': 'bg-purple-500'
+        };
+        return colors[sender.toLowerCase()] || 'bg-indigo-500';
+      }
+      
+      messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        
+        if (message) {
+          // Send message to server
+          ws.send(JSON.stringify({
+            type: 'message',
+            content: message
+          }));
+          
+          // Add user message to UI immediately
+          addMessage('You', message, true);
+          messageInput.value = '';
+        }
+      });
+      
+      // Room switching
+      roomItems.forEach(item => {
+        item.addEventListener('click', () => {
+          // Update active room UI
+          roomItems.forEach(i => i.classList.remove('bg-gray-100'));
+          item.classList.add('bg-gray-100');
+          
+          // Update chat header
+          document.getElementById('chat-header').querySelector('h2').textContent = item.textContent;
+          
+          // TODO: Load room messages from server
+        });
+      });
+      
+      // New chat button
+      newChatBtn.addEventListener('click', () => {
+        // TODO: Implement new chat creation
+        alert('New chat feature coming soon!');
+      });
+      
+      // Settings button
+      settingsBtn.addEventListener('click', () => {
+        // TODO: Implement settings modal
+        alert('Settings feature coming soon!');
+      });
+      
+      // Responsive sidebar toggle (for mobile)
+      function checkScreenSize() {
+        if (window.innerWidth < 768) {
+          sidebar.classList.add('hidden');
+        } else {
+          sidebar.classList.remove('hidden');
+        }
+      }
+      
+      window.addEventListener('resize', checkScreenSize);
+      checkScreenSize();
+    });
+  </script>
+</html>

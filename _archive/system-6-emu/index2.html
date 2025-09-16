@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>System 6 Emulator</title>
+  <!-- System.css: Classic Mac System 6 styles -->
+  <link rel="stylesheet" href="https://unpkg.com/@sakun/system.css" /> <!-- :contentReference[oaicite:7]{index=7} -->
+  <style>
+    /* Desktop background and layout */
+    body { margin: 0; overflow: hidden; background: #c0c0c0; }                 /* :contentReference[oaicite:8]{index=8} */
+    #menu-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }   /* :contentReference[oaicite:9]{index=9} */
+    #desktop { position: absolute; top: 24px; left: 0; right: 0; bottom: 0;
+               display: flex; flex-wrap: wrap; align-content: flex-start; }    /* :contentReference[oaicite:10]{index=10} */
+    .icon { width: 64px; margin: 10px; text-align: center;
+            cursor: default; user-select: none; }                              /* :contentReference[oaicite:11]{index=11} */
+    .window { position: absolute; box-shadow: 2px 2px 0 #000; }                 /* :contentReference[oaicite:12]{index=12} */
+  </style>
+</head>
+<body>
+  <!-- Menu Bar -->
+  <div id="menu-bar" class="menubar">
+    <div class="menubar-section"></div>
+    <div class="menubar-section" tabindex="0">File
+      <div class="dropdown-menu" hidden>
+        <button class="btn">About</button>
+        <button class="btn btn-default">Quit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Icons -->
+  <div id="desktop">
+    <div class="icon draggable" data-app="About">
+      <div>📄</div>
+      About
+    </div>
+  </div>
+
+  <!-- Window Manager Script -->
+  <script>
+    (() => {
+      let zIndex = 1;
+
+      // Double-click icon to open window
+      document.querySelectorAll('.draggable').forEach(icon => {
+        icon.addEventListener('dblclick', () => openWindow(icon.dataset.app));
+      });                                                                                   /* :contentReference[oaicite:13]{index=13} */
+
+      // Toggle File menu dropdown
+      document.querySelectorAll('.menubar-section').forEach(sec => {
+        sec.addEventListener('click', () => {
+          const menu = sec.querySelector('.dropdown-menu');
+          menu.hidden = !menu.hidden;
+        });
+      });
+
+      // Create and show a new window
+      function openWindow(title) {
+        if (document.getElementById(title + '-win')) return;
+        const win = document.createElement('div');
+        win.id = title + '-win';
+        win.className = 'window';
+        win.style.left = '100px';
+        win.style.top  = '100px';
+        win.style.width = '300px';
+        win.innerHTML = `
+          <div class="title-bar">
+            <button class="close"></button>
+            <h1 class="title">${title}</h1>
+          </div>
+          <div class="window-body">This is the ${title} window.</div>`;
+        document.body.appendChild(win);
+        makeDraggable(win);
+      }                                                                                      
+
+      // Enable dragging on window title bars
+      function makeDraggable(win) {
+        const bar = win.querySelector('.title-bar');
+        bar.addEventListener('mousedown', (e) => {
+          win.style.zIndex = ++zIndex;                                                         /* :contentReference[oaicite:14]{index=14} */
+          let shiftX = e.clientX - win.getBoundingClientRect().left;
+          let shiftY = e.clientY - win.getBoundingClientRect().top;
+          function onMouseMove(e) {
+            win.style.left = e.clientX - shiftX + 'px';
+            win.style.top  = e.clientY - shiftY + 'px';
+          }
+          document.addEventListener('mousemove', onMouseMove);                                  /* :contentReference[oaicite:15]{index=15} */
+          document.addEventListener('mouseup', () => {
+            document.removeEventListener('mousemove', onMouseMove);
+          }, { once: true });
+        });
+      }
+
+      // Close window on clicking the close button
+      document.body.addEventListener('click', (e) => {
+        if (e.target.classList.contains('close')) {
+          e.target.closest('.window').remove();                                              /* :contentReference[oaicite:16]{index=16} */
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

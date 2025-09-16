@@ -1,0 +1,8 @@
+{
+  "name": "bbs",
+  "version": "1.0.0",
+  "main": "index.html",
+  "static": true,
+  "defaultSize": [600, 600],
+  "resizable": true
+}

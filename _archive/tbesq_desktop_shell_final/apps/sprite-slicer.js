@@ -1,0 +1,1 @@
+export function render(container) { container.innerHTML = '<h2>Sprite Slicer Tool Active</h2>'; }

@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded', () => { console.log('System 6 UI initialized'); });

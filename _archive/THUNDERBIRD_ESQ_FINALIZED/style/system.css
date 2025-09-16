@@ -1,0 +1,32 @@
+/* system.css for THUNDERBIRD.ESQ */
+/* Matches Apple System 6 styling */
+
+body {
+  font-family: 'Chicago', sans-serif;
+  background-color: #C3C3C3;
+  color: black;
+  margin: 0;
+  padding: 0;
+}
+
+.window {
+  background: #E0E0E0;
+  border: 2px solid black;
+  position: absolute;
+  padding: 4px;
+}
+
+.title-bar {
+  background: #C0C0C0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+}
+
+.button {
+  background: #E0E0E0;
+  border: 1px solid black;
+  font-family: 'Chicago', sans-serif;
+  font-size: 12px;
+}

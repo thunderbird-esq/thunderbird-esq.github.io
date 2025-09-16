@@ -1,0 +1,8 @@
+{
+  "name": "big-gifs",
+  "version": "1.0.0",
+  "main": "big-gifs.html",
+  "static": true,
+  "defaultSize": [640, 480],
+  "resizable": true
+}

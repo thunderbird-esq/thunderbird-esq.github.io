@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>THUNDERBIRD.ESQ</title>
+  <link rel="stylesheet" href="system.css">
+  <script type="module" src="main.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #1e1e1e; overflow: hidden; }
+    #boot { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: black; color: lime; font-family: monospace; padding: 1em; white-space: pre-wrap; }
+    #desktop { display: none; width: 100vw; height: 100vh; background: #3a3a3a; position: relative; }
+    #taskbar { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: #2e2e2e; border-top: 1px solid #000; display: flex; align-items: center; padding: 0 5px; color: white; font-size: 0.9em; z-index: 1000; }
+    .taskbar-button { margin-right: 5px; background: #555; border: none; color: white; padding: 5px 10px; cursor: pointer; }
+    .window-content { padding: 10px; }
+  </style>
+</head>
+<body>
+  <div id="boot">THUNDERBIRD.ESQ v0.2
+
+Initializing virtual stack...
+Loading system.css...
+Spawning desktop nodes...
+
+[Press Enter to Continue]</div>
+  <div id="desktop"><div id="taskbar"></div></div>
+</body>
+</html>

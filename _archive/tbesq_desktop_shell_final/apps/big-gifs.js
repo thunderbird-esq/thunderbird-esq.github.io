@@ -1,0 +1,1 @@
+export function render(container) { container.innerHTML = '<h2>BIG GIFS Tool Active</h2>'; }

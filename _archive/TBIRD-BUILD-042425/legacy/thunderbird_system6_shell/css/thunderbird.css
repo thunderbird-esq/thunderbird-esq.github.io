@@ -1,0 +1,12 @@
+:root{--accent:#00ffff;--focus-ring:var(--accent);}
+.desktop{width:100vw;height:calc(100vh - 17px);background:repeating-linear-gradient(45deg,#c4c4c4 0 4px,#cacaca 4px 8px);}
+#menubar{height:17px;background:#dfdfdf;border-bottom:1px solid #000;display:flex;align-items:center;font-family:Chicago;font-size:12px;}
+#menubar .menu{display:flex;gap:14px;margin:0;padding:0 6px}
+#menubar li{cursor:default;user-select:none}
+.menu-popup{position:absolute;top:17px;background:#dfdfdf;border:1px solid #000;font:12px Chicago;padding:2px 0;z-index:200;}
+.menu-popup li{padding:0 18px 0 8px;white-space:nowrap}
+.menu-popup li:hover{background:#000;color:#fff}
+.window.active{box-shadow:0 0 0 1px var(--focus-ring) inset}
+.title-bar{cursor:move}
+.desktop-icon{width:40px;margin:8px;image-rendering:pixelated}
+.desktop-icon.selected{outline:2px solid var(--accent);background:#e8ffff}

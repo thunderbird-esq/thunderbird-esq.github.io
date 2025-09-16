@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>THUNDERBIRD.ESQ — System 6 Shell</title>
+
+  <!-- Locally-hosted OS skin -->
+  <link rel="stylesheet" href="style.css">
+
+  <meta name="theme-color" content="#c3c3c3">
+</head>
+<body>
+  <div id="boot" class="boot-screen">
+    <img src="assets/icons/pyramid.svg" alt="Pyramid Icon" class="boot-logo">
+    <div class="thermometer"><div class="fill"></div></div>
+    <p class="boot-label">Welcome to <strong>THUNDERBIRD.ESQ System 6</strong></p>
+  </div>
+
+  <div id="desktop" class="desktop hidden" tabindex="0">
+    <ul id="menubar" class="menu-bar">
+      <li class="menu-root" data-menu="system"><img src="assets/icons/pyramid.svg" alt=""></li>
+      <li class="menu-root" data-menu="file">File</li>
+      <li class="menu-root" data-menu="edit">Edit</li>
+      <li class="menu-root" data-menu="special">Special</li>
+    </ul>
+
+    <div class="icon" data-launch="#finder">
+      <img src="assets/icons/computer.svg" alt=""><span>HD 20</span>
+    </div>
+    <div class="icon trash" id="trash">
+      <img src="assets/icons/trash.svg" alt=""><span>Trash</span>
+    </div>
+  </div>
+
+  <template id="finder">
+    <div class="window" style="left:120px;top:90px;width:320px;">
+      <header class="title-bar">
+        <span class="title">HD 20</span>
+        <div class="controls">
+          <button class="close" aria-label="Close"></button>
+        </div>
+      </header>
+      <div class="content list-view">
+        <div class="list-row"><img src="assets/icons/folder.svg" alt=""> <span>Apps</span></div>
+        <div class="list-row"><img src="assets/icons/folder.svg" alt=""> <span>Documents</span></div>
+        <div class="list-row"><img src="assets/icons/folder.svg" alt=""> <span>System</span></div>
+      </div>
+      <footer class="status-bar">0K in disk • 0K available</footer>
+    </div>
+  </template>
+
+  <script src="main.js"></script>
+</body>
+</html>

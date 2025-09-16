@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THUNDERBIRD.ESQ</title>
+  <link rel="stylesheet" href="./system.css">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #1e1e1e;
+      overflow: hidden;
+      font-family: system-ui, sans-serif;
+    }
+    #boot {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: black;
+      color: lime;
+      font-family: monospace;
+      padding: 1em;
+      white-space: pre-wrap;
+    }
+    #desktop {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      background: #3a3a3a;
+      position: relative;
+    }
+    #taskbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #2e2e2e;
+      border-top: 1px solid #000;
+      display: flex;
+      align-items: center;
+      padding: 0 5px;
+      color: white;
+      font-size: 0.9em;
+    }
+    .window {
+      position: absolute;
+      border: 2px solid #000;
+      background: #fff;
+      width: 400px;
+      height: 300px;
+      box-shadow: 4px 4px 0 #000;
+      resize: both;
+      overflow: auto;
+    }
+    .window-header {
+      height: 25px;
+      background: #c0c0c0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 5px;
+      cursor: move;
+    }
+    .window-content {
+      padding: 10px;
+    }
+    .taskbar-button {
+      margin-right: 5px;
+      background: #555;
+      border: none;
+      color: white;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="boot">
+    THUNDERBIRD.ESQ v0.2
+
+    Initializing virtual stack...
+    Loading system.css...
+    Spawning desktop nodes...
+    
+    [Press Enter to Continue]
+  </div>
+
+  <div id="desktop">
+    <div id="taskbar">
+      <button class="taskbar-button" onclick="spawnWindow('Welcome')">Welcome</button>
+    </div>
+  </div>
+
+  <script>
+    // Boot sequence
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('boot').style.display = 'none';
+        document.getElementById('desktop').style.display = 'block';
+      }
+    });
+
+    // Basic window manager
+    let zIndexCounter = 10;
+
+    function spawnWindow(title) {
+      const win = document.createElement('div');
+      win.className = 'window';
+      win.style.top = '100px';
+      win.style.left = '100px';
+      win.style.zIndex = zIndexCounter++;
+
+      const header = document.createElement('div');
+      header.className = 'window-header';
+      header.innerHTML = `<span>${title}</span><button onclick="this.closest('.window').remove()">X</button>`;
+
+      const content = document.createElement('div');
+      content.className = 'window-content';
+      content.innerText = `This is a window titled: ${title}`;
+
+      win.appendChild(header);
+      win.appendChild(content);
+      document.getElementById('desktop').appendChild(win);
+
+      makeDraggable(win, header);
+    }
+
+    function makeDraggable(win, header) {
+      let offsetX = 0, offsetY = 0, dragging = false;
+
+      header.addEventListener('mousedown', e => {
+        dragging = true;
+        offsetX = e.clientX - win.offsetLeft;
+        offsetY = e.clientY - win.offsetTop;
+        win.style.zIndex = zIndexCounter++;
+      });
+
+      document.addEventListener('mousemove', e => {
+        if (dragging) {
+          win.style.left = (e.clientX - offsetX) + 'px';
+          win.style.top = (e.clientY - offsetY) + 'px';
+        }
+      });
+
+      document.addEventListener('mouseup', () => dragging = false);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>System 6 – Browser Emulation</title>
+  <link rel="stylesheet" href="css/system6.css">
+  <style>
+    @font-face{font-family:"Chicago";src:local("Chicago"),local("ChicagoFLF");}
+    @font-face{font-family:"Geneva";src:local("Geneva");}
+    html{font-family:Chicago,Geneva,sans-serif;}
+  </style>
+  <script defer src="js/main.js"></script>
+</head>
+<body>
+  <div id="boot" class="boot">
+    <h1>Welcome to<br>System 6</h1>
+    <div class="progress"><div class="bar"></div></div>
+  </div>
+  <div id="desktop" class="desktop hidden">
+    <ul id="menuBar" class="menu-bar">
+      <li data-menu="apple"  class="menu apple"></li>
+      <li data-menu="file"   class="menu">File</li>
+      <li data-menu="edit"   class="menu">Edit</li>
+      <li data-menu="finder" class="menu">Finder</li>
+      <li data-menu="special" class="menu">Special</li>
+    </ul>
+    <div id="icons" class="desktop-icons">
+      <div class="icon" draggable="true" data-type="disk">
+        <img src="assets/icons/disk.png" alt="">
+        <span class="label">System Disk</span>
+      </div>
+      <div class="icon" draggable="true" data-type="trash" id="trash">
+        <img src="assets/icons/trash.png" alt="">
+        <span class="label">Trash</span>
+      </div>
+    </div>
+    <div id="windows" class="windows"></div>
+  </div>
+</body>
+</html>

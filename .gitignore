@@ -1,0 +1,39 @@
+# ===================================================================
+# Comprehensive .gitignore for Vue 3 + Vite + TypeScript Projects
+# Adapted for the THUNDERBIRD OS repository based on historical analysis.
+# ===================================================================
+
+*.zip
+*.tar
+*.gz
+*.rar
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+node_modules
+dist
+.vite
+pnpm-lock.yaml
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.env
+.env.local
+.env.*.local
+*.sh
+*.tsbuildinfo
+coverage/
+.nyc_output/

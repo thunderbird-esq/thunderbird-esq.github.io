@@ -1,0 +1,35 @@
+
+.desktop {
+  background-color: #ccc;
+  width: 100%;
+  height: calc(100% - 24px);
+  position: relative;
+  overflow: hidden;
+}
+
+.menubar {
+  height: 24px;
+  background: #aaa;
+  display: flex;
+  align-items: center;
+  font-family: 'Chicago', sans-serif;
+  font-weight: bold;
+  padding: 0 8px;
+  user-select: none;
+}
+
+.desktop-icon {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+  margin: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Chicago', sans-serif;
+}
+
+.desktop-icon img {
+  width: 48px;
+  height: 48px;
+}

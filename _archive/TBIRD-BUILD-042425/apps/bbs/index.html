@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>THUNDERBIRD BBS 2</title>
+  <!-- Global and retro styles -->
+  <link rel="stylesheet" href="../../core/global.css">
+  <link rel="stylesheet" href="../../core/system.css">
+  <style>
+    /* Custom BBS overrides */
+    body {
+      background-color: #FFF;
+      padding: 20px;
+    }
+    .bbs-terminal {
+      font-family: "Monaco", monospace;
+      white-space: pre-wrap;
+      line-height: 1.2;
+    }
+    .message-area {
+      height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Modem Connection Sequence -->
+  <div id="modem-sequence" class="window" style="width:600px; margin:0 auto;">
+    <div class="title-bar"><h1 class="title">Dialing In...</h1></div>
+    <div class="separator"></div>
+    <div class="window-pane bbs-terminal" style="height:300px; overflow-y:auto; padding:10px;" id="modem-text"></div>
+  </div>
+
+  <!-- Main BBS Interface (hidden until connected) -->
+  <div id="bbs-interface" style="display:none;">
+    <div class="window" style="width: 600px; margin: 0 auto;">
+      <div class="title-bar">
+        <button aria-label="Close" class="close"></button>
+        <h1 class="title">THUNDERBIRD BBS 2.0</h1>
+        <button aria-label="Resize" class="resize"></button>
+      </div>
+      <div class="separator"></div>
+
+      <!-- Menu Bar -->
+      <ul role="menu-bar">
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          File
+          <ul role="menu">
+            <li role="menu-item"><a href="#login">Login</a></li>
+            <li role="menu-item"><a href="#register">Register</a></li>
+            <li role="menu-item" class="divider"></li>
+            <li role="menu-item"><a href="#exit">Exit</a></li>
+          </ul>
+        </li>
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          Messages
+          <ul role="menu">
+            <li role="menu-item"><a href="#new">New Post</a></li>
+            <li role="menu-item"><a href="#inbox">Inbox</a></li>
+          </ul>
+        </li>
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          Files
+          <ul role="menu">
+            <li role="menu-item"><a href="#downloads">Downloads</a></li>
+            <li role="menu-item"><a href="#uploads">Uploads</a></li>
+          </ul>
+        </li>
+      </ul>
+
+      <!-- Message Display Area -->
+      <div id="message-display" class="window-pane bbs-terminal message-area">
+        ╔════════════════════════════════════════════╗
+        ║                                            ║
+        ║  WELCOME TO THUNDERBIRD BBS 2.0            ║
+        ║  ----------------------------------------  ║
+        ║  Last Login: 20-JUL-1989 14:22:05          ║
+        ║  Users Online: 3                           ║
+        ║                                            ║
+        ║  1. New Messages (2)                       ║
+        ║  2. File Downloads                         ║
+        ║  3. User Directory                         ║
+        ║  4. System Info                            ║
+        ║                                            ║
+        ╚════════════════════════════════════════════╝
+      </div>
+
+      <!-- Input Area -->
+      <div class="separator"></div>
+      <div class="window-pane" style="padding:10px;">
+        <div class="field-row" style="margin-top: 10px;">
+          <label for="bbs-command">COMMAND:</label>
+          <input id="bbs-command" type="text" style="flex-grow: 1;" placeholder="Type HELP for commands">
+        </div>
+        <div class="field-row" style="justify-content: flex-end; margin-top: 10px;">
+          <button class="btn clear">CLEAR</button>
+          <button class="btn btn-default">SEND</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-dialog outer-border" id="login-dialog" style="width: 300px; display: none; position: absolute; top: 100px; left: 50%; transform: translateX(-50%);">
+      <div class="inner-border">
+        <div class="modal-contents">
+          <h1 class="modal-text">USER LOGIN</h1>
+          <div class="field-row">
+            <label for="username">USERNAME:</label>
+            <input id="username" type="text">
+          </div>
+          <div class="field-row">
+            <label for="password">PASSWORD:</label>
+            <input id="password" type="password">
+          </div>
+          <section class="field-row" style="justify-content: flex-end; margin-top: 15px;">
+            <button class="btn" onclick="document.getElementById('login-dialog').style.display='none'">CANCEL</button>
+            <button class="btn" style="width:95px;">LOGIN</button>
+          </section>
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- end bbs-interface -->
+
+  <script src="../../core/ui/draggabilly.pkgd.min.js"></script>
+  <script src="../../core/ui/system6-ui.js"></script>
+</body>
+</html>

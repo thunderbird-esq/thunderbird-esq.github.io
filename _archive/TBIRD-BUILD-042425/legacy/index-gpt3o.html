@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- =====================================================
+       THUNDERBIRD.ESQ – System 6/7‑style BBS (Compliant)
+       Every asset is self‑hosted, no external calls.
+       Depends on: /assets/css/system.css (vendored copy)
+                    /assets/js/draggabilly.pkgd.min.js (vendored copy)
+                    /assets/fonts/ (Chicago, Geneva, Monaco)
+       ===================================================== -->
+  <meta charset="UTF-8">
+  <title>THUNDERBIRD BBS</title>
+  <meta name="generator" content="THUNDERBIRD BBS (C) 1989">
+
+  <!-- System.css (Platinum theme) – self‑hosted copy -->
+  <link rel="stylesheet" href="assets/css/system.css">
+
+  <style>
+    /*–––––––––––––––––––––––––––––––––––––––––––––––––––––
+      Custom overrides that *extend* System.css while
+      respecting the grayscale palette + accent blue #0000FF.
+    –––––––––––––––––––––––––––––––––––––––––––––––––––––*/
+
+    /* Font declarations – served locally */
+    @font-face {
+      font-family: Chicago;
+      src: url("assets/fonts/ChicagoFLF.woff2") format("woff2"),
+           url("assets/fonts/ChicagoFLF.woff") format("woff");
+    }
+    @font-face {
+      font-family: Geneva;
+      src: url("assets/fonts/Geneva.woff2") format("woff2"),
+           url("assets/fonts/Geneva.woff") format("woff");
+    }
+    @font-face {
+      font-family: Monaco;
+      src: url("assets/fonts/Monaco.woff2") format("woff2"),
+           url("assets/fonts/Monaco.woff") format("woff");
+    }
+
+    :root {
+      /* Accent blue for highlights */
+      --accent: #0000ff;
+    }
+
+    body {
+      margin: 0;
+      font-family: Chicago, Geneva, sans-serif;
+      background: #000; /* Black background until boot */
+    }
+
+    /* Boot screen – simple grayscale */
+    #boot-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #c0c0c0;
+    }
+    #boot-icon {
+      width: 64px;
+      height: 64px;
+      cursor: pointer;
+    }
+    #boot-label {
+      margin-top: 4px;
+      font-family: Chicago;
+      font-size: 12px;
+      color: #000;
+    }
+
+    /* Desktop grid background (System 7 pattern) */
+    #desktop-container {
+      display: none;
+      min-height: 100vh;
+      background: repeating-linear-gradient( #ffffff 0 20px, #c0c0c0 20px 21px );
+    }
+
+    /* BBS windows */
+    .window {
+      position: absolute;
+      display: none;
+      min-width: 320px;
+      max-width: 640px;
+    }
+    .window-body {
+      max-height: 60vh;
+      overflow: auto;
+      font-family: Monaco, monospace;
+      white-space: pre-wrap;
+    }
+
+    /* Command input */
+    .field-row input[type="text"] {
+      width: 100%;
+    }
+
+    /* Banner ASCII wraps in a monospace container */
+    .banner {
+      font-family: Monaco, monospace;
+      text-align: center;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+  <!-- Boot Screen (minimal markup) -->
+  <div id="boot-screen" class="window-body">
+    <img id="boot-icon" src="assets/images/eye-icon.png" alt="THUNDERBIRD OS Icon" />
+    <div id="boot-label">CLICK TO BOOT</div>
+  </div>
+
+  <!-- Boot dialog window -->
+  <div id="boot-dialog" class="window" style="top:50%;left:50%;transform:translate(-50%,-50%);">
+    <div class="title-bar">
+      <div class="title">THUNDERBIRD OS Boot</div>
+    </div>
+    <div id="boot-log" class="window-body" style="height:150px;"></div>
+  </div>
+
+  <!-- Desktop -->
+  <div id="desktop-container">
+    <!-- Menu bar -->
+    <ul class="title-bar" role="menu-bar">
+      <li role="menu-item" tabindex="0" aria-haspopup="true">Apple
+        <ul role="menu">
+          <li role="menu-item"><a href="#about">About THUNDERBIRD</a></li>
+        </ul>
+      </li>
+      <li role="menu-item" tabindex="0" aria-haspopup="true">File
+        <ul role="menu">
+          <li role="menu-item"><a href="#quit">Quit</a></li>
+        </ul>
+      </li>
+    </ul>
+
+    <!-- Desktop icon -->
+    <div style="margin:2rem;" class="icon-button" data-target="bbs-window">
+      <img src="assets/icon/bbs-icon.svg" width="32" height="32" alt="BBS Icon" />
+      <div>BBS</div>
+    </div>
+  </div>
+
+  <!-- BBS Main Window -->
+  <div id="bbs-window" class="window" style="top:15%;left:25%;">
+    <div class="title-bar">
+      <div class="title">THUNDERBIRD BBS</div>
+      <div class="window-controls">
+        <button aria-label="Close" class="close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <div id="message-display" class="banner"></div>
+      <div class="separator"></div>
+      <div class="field-row" style="margin-top:8px;">
+        <label for="cmd">COMMAND:</label>
+        <input id="cmd" type="text" placeholder="Type HELP" />
+      </div>
+      <div class="field-row" style="justify-content:flex-end;margin-top:4px;">
+        <button class="push-button" id="clearBtn">CLEAR</button>
+        <button class="push-button" id="sendBtn">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio (local) -->
+  <audio id="clicks" src="assets/audio/floppy-clicks.mp3" preload="auto"></audio>
+
+  <!-- Draggabilly – vendored local copy -->
+  <script src="assets/js/draggabilly.pkgd.min.js"></script>
+
+  <script>
+    /*–––––––––––––––––––– Boot sequence –––––––––––––––––––*/
+    const bootLines = [
+      'Running diagnostics… [OK]',
+      'Booting THUNDERBIRD OS… [OK]',
+      'Loading BBS modules… [OK]',
+      'Boot complete!'
+    ];
+
+    let idx = 0;
+    const bootIcon = document.getElementById('boot-icon');
+    const bootScreen = document.getElementById('boot-screen');
+    const bootDialog = document.getElementById('boot-dialog');
+    const bootLog = document.getElementById('boot-log');
+    const desktop = document.getElementById('desktop-container');
+
+    bootIcon.addEventListener('click', () => {
+      bootScreen.style.display = 'none';
+      bootDialog.style.display = 'block';
+      nextLine();
+    });
+
+    function nextLine() {
+      if (idx < bootLines.length) {
+        bootLog.textContent += bootLines[idx] + '\n';
+        idx++;
+        setTimeout(nextLine, 1200);
+      } else {
+        bootDialog.style.display = 'none';
+        desktop.style.display = 'block';
+      }
+    }
+
+    /*–––––––––––––––– Desktop interactions –––––––––––––––*/
+    document.querySelectorAll('[data-target]').forEach(icon => {
+      icon.addEventListener('click', () => {
+        const win = document.getElementById(icon.dataset.target);
+        win.style.display = 'block';
+      });
+    });
+
+    new Draggabilly('#bbs-window', { handle: '.title-bar' });
+
+    /*–––––––––––––––– BBS command parser –––––––––––––––––*/
+    const display = document.getElementById('message-display');
+    const cmdInput = document.getElementById('cmd');
+    const clicks = document.getElementById('clicks');
+
+    function banner() {
+      return `┌───────────────┐\n│ THUNDERBIRD │\n│     BBS     │\n└───────────────┘`;
+    }
+    display.textContent = banner();
+
+    function runCommand(cmd) {
+      switch (cmd) {
+        case 'HELP':
+          display.textContent += '\n\nCOMMANDS: HELP, LOGIN, LIST, QUIT';
+          break;
+        case 'LOGIN':
+          display.textContent += '\n\nLOGIN FEATURE COMING SOON';
+          break;
+        default:
+          display.textContent += '\n\nUNKNOWN COMMAND';
+      }
+      display.scrollTop = display.scrollHeight;
+      clicks.currentTime = 0;
+      clicks.play();
+    }
+
+    cmdInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        runCommand(cmdInput.value.trim().toUpperCase());
+        cmdInput.value = '';
+      }
+    });
+
+    document.getElementById('clearBtn').onclick = () => display.textContent = banner();
+    document.getElementById('sendBtn').onclick  = () => runCommand(cmdInput.value.trim().toUpperCase());
+  </script>
+</body>
+</html>
+

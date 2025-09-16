@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System 6 + IRIX Emulation</title>
+  <!-- Local System.css -->
+  <link rel="stylesheet" href="system.css" />
+  <!-- Three.js for GL Demo -->
+  <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+  <!-- Draggabilly for window dragging -->
+  <script src="https://unpkg.com/draggabilly@3.0.0/dist/draggabilly.pkgd.min.js"></script>
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Toolchest Menu Bar -->
+  <ul role="menu-bar" class="toolchest">
+    <li role="menu-item" tabindex="0" aria-haspopup="true">
+      System
+      <ul role="menu">
+        <li role="menu-item"><a href="#info">System Info</a></li>
+        <li role="menu-item"><a href="#restart">Restart</a></li>
+        <li role="menu-item" class="divider"><a href="#shutdown">Shutdown</a></li>
+      </ul>
+    </li>
+    <li role="menu-item" tabindex="0" aria-haspopup="true">
+      Applications
+      <ul role="menu">
+        <li role="menu-item"><a href="#" class="launch-file-manager">File Manager</a></li>
+        <li role="menu-item"><a href="#terminal">Terminal</a></li>
+      </ul>
+    </li>
+    <li role="menu-item" tabindex="0" aria-haspopup="true">
+      Demos
+      <ul role="menu">
+        <li role="menu-item"><a href="#" class="launch-gl-demo">GL Demo</a></li>
+        <li role="menu-item"><a href="#cube">3D Cube</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <!-- Desktop Icons -->
+  <div class="desktop-icon" style="top: 50px; left: 20px;" data-action="launch-file-manager">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
+      <rect x="4" y="4" width="16" height="16" />
+      <path d="M4 8h16" />
+    </svg>
+    <span>File Manager</span>
+  </div>
+  <div class="desktop-icon" style="top: 100px; left: 20px;" data-action="launch-gl-demo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
+      <rect x="6" y="6" width="12" height="12" />
+      <path d="M6 12h12M12 6v12" />
+    </svg>
+    <span>GL Demo</span>
+  </div>
+
+  <!-- Initial Window -->
+  <div class="window" style="width: 30rem; position: absolute; top: 100px; left: 100px;" data-window-id="1">
+    <div class="title-bar">
+      <button aria-label="Close" class="close"></button>
+      <button aria-label="Minimize" class="minimize"></button>
+      <button aria-label="Maximize" class="maximize"></button>
+      <h1 class="title">IRIX Interactive Desktop</h1>
+    </div>
+    <div class="separator"></div>
+    <div class="window-pane">
+      <p>Welcome to the System 6 + IRIX emulation!</p>
+      <button class="btn">Launch Demo</button>
+    </div>
+  </div>
+
+  <!-- Desktop Context Menu -->
+  <ul id="context-menu" role="menu" class="hidden">
+    <li role="menu-item"><a href="#" class="create-new-window">New Window</a></li>
+    <li role="menu-item"><a href="#background">Change Background</a></li>
+    <li role="menu-item"><a href="#info">Desktop Info</a></li>
+  </ul>
+
+  <!-- JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>

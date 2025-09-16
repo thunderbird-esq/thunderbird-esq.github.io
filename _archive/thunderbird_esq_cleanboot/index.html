@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>THUNDERBIRD.ESQ</title>
+  <link rel="stylesheet" href="core/system.css">
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #cccccc;
+    }
+    #menubar {
+      height: 24px;
+      background: #999;
+      padding: 4px 8px;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    #desktop {
+      height: calc(100% - 24px);
+      position: relative;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="menubar">🦅 THUNDERBIRD.ESQ</div>
+  <div id="desktop"></div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

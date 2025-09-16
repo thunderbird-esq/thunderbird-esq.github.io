@@ -1,0 +1,1 @@
+Placeholder icons – replace with 32x32px mono PNG.

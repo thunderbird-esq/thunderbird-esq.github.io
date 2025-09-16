@@ -1,0 +1,1 @@
+export function render(container) { container.innerHTML = '<h2>Chiptune Composer Tool Active</h2>'; }

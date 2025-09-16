@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System 6 Emulation</title>
+  <!-- System.css CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/@sakun/system.css" />
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Menu Bar -->
+  <ul role="menu-bar">
+    <li role="menu-item" tabindex="0" aria-haspopup="true">
+      File
+      <ul role="menu">
+        <li role="menu-item"><a href="#new">New</a></li>
+        <li role="menu-item"><a href="#open">Open</a></li>
+        <li role="menu-item" class="divider"><a href="#save">Save</a></li>
+        <li role="menu-item"><a href="#quit">Quit</a></li>
+      </ul>
+    </li>
+    <li role="menu-item" tabindex="0" aria-haspopup="true">
+      Edit
+      <ul role="menu">
+        <li role="menu-item"><a href="#undo">Undo</a></li>
+        <li role="menu-item"><a href="#cut">Cut</a></li>
+        <li role="menu-item"><a href="#copy">Copy</a></li>
+        <li role="menu-item"><a href="#paste">Paste</a></li>
+      </ul>
+    </li>
+    <li role="menu-item" tabindex="0" aria-haspopup="false">
+      <a href="https://github.com/sakofchit/system.css" target="_blank">About System.css</a>
+    </li>
+  </ul>
+
+  <!-- Desktop Window -->
+  <div class="window" style="width: 30rem; position: absolute; top: 100px; left: 100px;">
+    <div class="title-bar">
+      <button aria-label="Close" class="close"></button>
+      <h1 class="title">Welcome to System 6</h1>
+      <button aria-label="Resize" class="resize"></button>
+    </div>
+    <div class="separator"></div>
+    <div class="window-pane">
+      <p>Hello, world! This is a System 6 emulation.</p>
+      <button class="btn">Click Me</button>
+    </div>
+  </div>
+
+  <!-- JavaScript for interactivity -->
+<script src="https://unpkg.com/draggabilly@3.0.0/dist/draggabilly.pkgd.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+:root{--accent-cyan:#00ffff;--bg-pattern:url("./assets/icons/desktop-pattern-8x8.png");}
+#desktop{background:var(--bg-pattern) repeat;min-height:100vh;overflow:hidden;}
+.drag-ghost{opacity:.65;pointer-events:none;position:absolute;transition:none;}
+.window.focused{outline:1px solid var(--accent-cyan);}

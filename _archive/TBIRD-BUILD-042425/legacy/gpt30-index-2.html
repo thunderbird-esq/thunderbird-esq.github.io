@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<!--
+  THUNDERBIRD.ESQ – System 6/7 compliant prototype
+  ▸ All colours, shadows, gradients trimmed to match https://github.com/sakofchit/system.css
+  ▸ Depends on local paths only:
+      styles/system.css             (vendored copy of System.css)
+      scripts/draggabilly.pkgd.min.js
+      fonts/, icon/, assets/…       (same as previous structure)
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>THUNDERBIRD BBS</title>
+  <meta name="generator" content="THUNDERBIRD BBS (C) 1989" />
+
+  <!-- System.css (monochrome Platinum theme) -->
+  <link rel="stylesheet" href="styles/system.css" />
+
+  <!-- Minimal project‑specific tweaks -->
+  <style>
+    /* ------------------------------------------------------------------
+       1 Fonts – point System.css to local Chicago / Geneva / Monaco
+    ------------------------------------------------------------------*/
+    @font-face {
+      font-family: Chicago;
+      src: url("fonts/ChicagoFLF.woff2") format("woff2"),
+           url("fonts/ChicagoFLF.woff")  format("woff");
+    }
+    @font-face {
+      font-family: Chicago_12;
+      src: url("fonts/ChiKareGo2.woff2") format("woff2"),
+           url("fonts/ChiKareGo2.woff")  format("woff");
+    }
+    @font-face {
+      font-family: Geneva;
+      src: url("fonts/FindersKeepers.woff2") format("woff2"),
+           url("fonts/FindersKeepers.woff")  format("woff");
+    }
+    @font-face {
+      font-family: Monaco;
+      src: url("fonts/monaco.woff2") format("woff2"),
+           url("fonts/monaco.woff")  format("woff");
+    }
+
+    /* Override System.css body font to use our local Chicago stack */
+    body {
+      font-family: Chicago, Geneva, sans-serif;
+      background: #000;              /* pure black */
+      color: #000;                   /* default text inside System.css windows is black */
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* ------------------------------------------------------------------
+       2 Boot screen – grayscale only, no shadows / gradient
+    ------------------------------------------------------------------*/
+    #boot-screen {
+      position: fixed;
+      inset: 0;
+      background: #fff;              /* white */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    #boot-icon {
+      width: 64px;
+      height: 64px;
+      cursor: pointer;
+    }
+    .boot-icon-label {
+      margin-top: 8px;
+      font: 12px Chicago_12;
+      color: #000;
+      text-align: center;
+    }
+    .boot-icon-label .question-mark {
+      animation: blink 1s steps(2, start) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Boot dialog (classic window) */
+    #boot-dialog {
+      display: none;
+      width: 600px;
+      position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+    }
+    /* Remove purple drop‑shadow in original design – rely on System.css default */
+
+    /* ------------------------------------------------------------------
+       3 Desktop background – neutral checkerboard from System 6 (22px grid)
+    ------------------------------------------------------------------*/
+    #desktop-container {
+      display: none;
+      min-height: 100vh;
+      background:
+        repeating-linear-gradient( 0deg , #fff 0 21px, transparent 21px 22px),
+        repeating-linear-gradient(90deg , #fff 0 21px, transparent 21px 22px),
+        #000; /* grid over black */
+    }
+
+    /* ------------------------------------------------------------------
+       4 Desktop icons  --------------------------------------------------*/
+    .desktop {
+      position: fixed;
+      inset: 2rem 1rem 1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .desktop-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 64px;
+      font: 12px Chicago_12;
+      color: #000;
+      user-select: none;
+      cursor: pointer;
+    }
+    .desktop-icon img {
+      width: 32px; height: 32px;
+      border: 1px solid #000;
+      background: #fff;
+    }
+
+    /* Hover state – invert colours like original Finder */
+    .desktop-icon:hover {
+      background: #000;
+      color: #fff;
+    }
+
+    /* ------------------------------------------------------------------
+       5 Message‑area terminal uses Monaco, green on black
+    ------------------------------------------------------------------*/
+    .message-area {
+      height: 300px;
+      overflow-y: auto;
+      background: #000;
+      color: #0f0;
+      font: 13px Monaco, monospace;
+      white-space: pre-wrap;
+      line-height: 1.2;
+    }
+
+    /* Remove custom scrollbars – keep native */
+
+    /* ------------------------------------------------------------------
+       6 Menu bar helper class from System.css
+    ------------------------------------------------------------------*/
+    .menu-bar {
+      /* nothing extra – System.css handles look */
+    }
+
+    /* ------------------------------------------------------------------
+       7 Small screen tweaks – shrink icons & windows only
+    ------------------------------------------------------------------*/
+    @media (max-width:600px) {
+      .desktop-icon { width:48px; font-size:10px; }
+      .desktop-icon img { width:24px; height:24px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Boot Screen -->
+  <div id="boot-screen">
+    <img id="boot-icon" src="assets/images/eye-icon.png" alt="THUNDERBIRD OS Icon" role="img" aria-label="Boot icon" />
+    <div class="boot-icon-label"><span class="question-mark">?</span></div>
+  </div>
+
+  <!-- Boot Dialog -->
+  <div id="boot-dialog" class="window">
+    <div class="title-bar">
+      <button aria-label="Close" class="close" disabled></button>
+      <h1 class="title">THUNDERBIRD OS Boot</h1>
+      <button aria-label="Resize" class="resize" disabled></button>
+    </div>
+    <div class="window-body">
+      <pre id="bootText" style="display:none;"></pre>
+      <div id="progressSection" style="display:none;">
+        <pre id="progressHeader">THUNDERBIRD OS v1.0.0 Booting...</pre>
+        <pre id="progressBar"></pre>
+        <pre id="status">Initializing...</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Container -->
+  <div id="desktop-container">
+    <!-- Menu Bar -->
+    <ul role="menu-bar" class="menu-bar">
+      <li role="menu-item" tabindex="0" aria-haspopup="true">
+        <span class="apple" aria-label="Apple"></span>
+        <ul role="menu">
+          <li role="menu-item"> <a href="#about">About THUNDERBIRD BBS</a></li>
+          <li role="menu-item" class="divider"></li>
+          <li role="menu-item"> <a href="#prefs">Preferences</a></li>
+        </ul>
+      </li>
+      <li role="menu-item" tabindex="0" aria-haspopup="true">File
+        <ul role="menu">
+          <li role="menu-item"><a href="#open">Open</a></li>
+          <li role="menu-item"><a href="#close">Close</a></li>
+          <li role="menu-item" class="divider"></li>
+          <li role="menu-item"><a href="#quit">Quit</a></li>
+        </ul>
+      </li>
+      <li role="menu-item" tabindex="0" aria-haspopup="true">Edit
+        <ul role="menu">
+          <li role="menu-item"><a href="#copy">Copy</a></li>
+          <li role="menu-item"><a href="#paste">Paste</a></li>
+        </ul>
+      </li>
+      <li role="menu-item" tabindex="0" aria-haspopup="true" style="margin-left:auto;">Special
+        <ul role="menu" style="right:0;">
+          <li role="menu-item"><a href="#settings">Settings</a></li>
+          <li role="menu-item"><a href="#about">About</a></li>
+        </ul>
+      </li>
+    </ul>
+
+    <!-- Desktop Icons -->
+    <div class="desktop">
+      <div class="desktop-icon" data-target="bbs-window">
+        <img src="icon/bbs-icon.svg" alt="THUNDERBIRD BBS Icon" />
+        <span>THUNDERBIRD BBS</span>
+      </div>
+    </div>
+
+    <!-- Modem Sequence Window -->
+    <div id="modem-sequence" class="window" style="width:400px; top:20%; left:50%; transform:translateX(-50%); display:none;">
+      <div class="title-bar">
+        <button aria-label="Close" class="close"></button>
+        <h1 class="title">Connecting…</h1>
+        <button aria-label="Resize" class="resize" disabled></button>
+      </div>
+      <div class="window-body">
+        <div id="modem-text" class="message-area" style="color:#0f0; height:200px;"></div>
+      </div>
+    </div>
+
+    <!-- BBS Interface Window -->
+    <div id="bbs-window" class="window" style="width:640px; top:10%; left:50%; transform:translateX(-50%); display:none;">
+      <div class="title-bar">
+        <button aria-label="Close" class="close"></button>
+        <h1 class="title">THUNDERBIRD BBS</h1>
+        <button aria-label="Resize" class="resize"></button>
+      </div>
+      <div class="window-body">
+        <ul role="menu-bar" class="menu-bar">
+          <li role="menu-item" tabindex="0" aria-haspopup="true">File
+            <ul role="menu">
+              <li role="menu-item"><a href="#login">Login</a></li>
+              <li role="menu-item"><a href="#register">Register</a></li>
+              <li role="menu-item" class="divider"></li>
+              <li role="menu-item"><a href="#exit">Exit</a></li>
+            </ul>
+          </li>
+          <li role="menu-item" tabindex="0" aria-haspopup="true">Messages
+            <ul role="menu">
+              <li role="menu-item"><a href="#new">New Post</a></li>
+              <li role="menu-item"><a href="#inbox">Inbox</a></li>
+            </ul>
+          </li>
+          <li role="menu-item" tabindex="0" aria-haspopup="true" style="margin-left:auto;">Special
+            <ul role="menu" style="right:0;">
+              <li role="menu-item"><a href="#settings">Settings</a></li>
+              <li role="menu-item"><a href="#about">About</a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <div id="message-display" class="message-area"></div>
+        <hr class="separator" />
+        <div class="field-row" style="padding:8px 0;">
+          <label for="bbs-command" class="modeless-text">COMMAND:</label>
+          <input id="bbs-command" type="text" placeholder="Type HELP" style="flex:1;">
+          <button class="btn" id="clearBtn">CLEAR</button>
+          <button class="btn default" id="sendBtn">SEND</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio assets (unchanged) -->
+  <audio id="systemChirp" src="assets/audio/system-chirp.mp3" loop></audio>
+  <audio id="fanSound1" src="assets/audio/fan-hum.mp3"></audio>
+  <audio id="fanSound2" src="assets/audio/fan-hum-2.mp3"></audio>
+  <audio id="clicksSound" src="assets/audio/floppy-clicks.mp3" loop></audio>
+  <audio id="bootBeep" src="assets/audio/startup-beep.mp3"></audio>
+
+  <!-- Draggabilly (local) -->
+  <script defer src="scripts/draggabilly.pkgd.min.js"></script>
+
+  <!-- Main logic (inline to stay self‑contained) -->
+  <script>
+    /* Same JavaScript logic as original index‑5‑test.html, cleaned for lint */
+    const bootLines=[
+      "Running diagnostics... <span class='ok'>[OK]</span>",
+      "Testing memory... <span class='ok'>[OK]</span>",
+      "Booting from ROM BIOS... <span class='ok'>[OK]</span>",
+      "Checking floppy disk drives... <span class='fail'>[FAIL - No floppy detected]</span>",
+      "Probing PCI buses... <span class='ok'>[OK]</span>",
+      "Loading quantum cache... <span class='ok'>[OK]</span>",
+      "Verifying hexadecimal transport matrix... <span class='ok'>[OK]</span>",
+      "Initializing THUNDERBIRD OS... <span class='ok'>[OK]</span>",
+      "Syncing with orbital relays... <span class='ok'>[OK]</span>",
+      "Finalizing system integrity check... <span class='ok'>[OK]</span>"
+    ];
+    let bootIndex=0;
+    function initBootScreen(){
+      const chirpSound=document.getElementById('systemChirp');
+      chirpSound.volume=0.3;chirpSound.play().catch(()=>{});
+      document.getElementById('boot-icon').addEventListener('click',()=>{
+        chirpSound.pause();document.querySelector('.question-mark').style.animation='none';
+        document.querySelector('.question-mark').style.opacity='1';startBoot();
+      });
+    }
+    function startBoot(){
+      document.getElementById('boot-dialog').style.display='block';
+      document.getElementById('fanSound1').play().catch(()=>{});
+      document.getElementById('clicksSound').play().catch(()=>{});
+      document.getElementById('bootBeep').play().catch(()=>{});
+      showNextLine();
+    }
+    function showNextLine(){
+      const bootText=document.getElementById('bootText');
+      if(bootIndex<bootLines.length){
+        if(!bootText.style.display)bootText.style.display='block';
+        bootText.innerHTML+=bootLines[bootIndex++]+'\n';
+        setTimeout(showNextLine,1600);
+      }else simulateLoading();
+    }
+    function simulateLoading(){
+      let progress=0;const bar=document.getElementById('progressBar');
+      const status=document.getElementById('status');
+      document.getElementById('progressSection').style.display='block';
+      const stages=['Initializing...','Connecting to THUNDERBIRD Network...','Fetching Messages...','Boot Complete!'];
+      let stageIndex=0;
+      const timer=setInterval(()=>{
+        if(progress>=100){
+          clearInterval(timer);status.textContent='Boot Complete!';
+          document.getElementById('boot-screen').style.display='none';
+          document.getElementById('boot-dialog').style.display='none';
+          document.getElementById('desktop-container').style.display='block';
+        }else{
+          progress+=2;
+          const tris=Math.floor(progress/5);bar.textContent='['+'△'.repeat(tris)+' '.repeat(20-tris)+'] '+progress+'%';
+          if(progress%25===0&&stageIndex<stages.length-1)status.textContent=stages[++stageIndex];
+        }
+      },100);
+    }
+    function createBanner(){
+      const ascii=`┌───────────┐\n│ THUNDERBIRD │\n│    BBS     │\n└───────────┘`;
+      return `<div class="banner-container" role="img" aria-label="THUNDERBIRD banner">${ascii}</div><div class="welcome-box"><div class="welcome-box-inner">┌───────────────────────┐<br>│   WELCOME TO THE BBS  │<br>└───────────────────────┘</div></div>`;
+    }
+    function startModemSequence(cb){
+      const out=document.getElementById('modem-text');out.textContent='';
+      const steps=["ATZ","OK","ATDT555-1234","CONNECT 2400","NEGOTIATING PROTOCOL...","HANDSHAKE COMPLETE","LOGGING INTO SYSTEM...","CONNECTION ESTABLISHED"];
+      let i=0;function next(){if(i<steps.length){out.textContent+=steps[i++]+"\n";setTimeout(next,600);}else cb();}
+      next();
+    }
+    function initBBS(){
+      document.getElementById('bbs-command').addEventListener('keypress',e=>{
+        if(e.key==='Enter'){const cmd=e.target.value.toUpperCase();const term=document.getElementById('message-display');
+          if(cmd==='HELP')term.textContent+='\n\nCOMMANDS: HELP, LOGIN, LIST, QUIT';
+          else if(cmd==='LOGIN')term.textContent+='\n\nLOGIN FEATURE COMING SOON';
+          else term.textContent+='\n\nUNKNOWN COMMAND';
+          e.target.value='';term.scrollTop=term.scrollHeight;}
+      });
+      document.getElementById('clearBtn').addEventListener('click',()=>{
+        document.getElementById('message-display').textContent='';
+      });
+      document.getElementById('sendBtn').addEventListener('click',()=>{
+        document.getElementById('message-display').innerHTML=createBanner();
+      });
+    }
+    function initMenus(){
+      document.querySelectorAll('[aria-haspopup="true"]').forEach(itm=>{
+        itm.addEventListener('click',e=>{
+          e.stopPropagation();const menu=itm.querySelector('ul[role="menu"]');
+          const open=menu.style.display==='block';document.querySelectorAll('ul[role="menu"]').forEach(m=>m.style.display='none');
+          menu.style.display=open?'none':'block';itm.setAttribute('aria-expanded',!open);
+        });
+      });
+      document.addEventListener('click',()=>document.querySelectorAll('ul[role="menu"]').forEach(m=>m.style.display='none'));
+    }
+    function initDesktop(){
+      document.querySelectorAll('.desktop-icon').forEach(icon=>{
+        icon.addEventListener('click',()=>{
+          const target=document.getElementById(icon.dataset.target);
+          document.getElementById('modem-sequence').style.display='block';
+          startModemSequence(()=>{
+            document.getElementById('modem-sequence').style.display='none';
+            target.style.display='block';
+            document.getElementById('message-display').innerHTML=createBanner();
+          });
+        });
+      });
+    }
+    function initDraggables(){
+      if(!window.Draggabilly){console.error('Draggabilly missing');return;}
+      document.querySelectorAll('.window').forEach(win=>new Draggabilly(win,{handle:'.title-bar',containment:'body'}));
+    }
+    window.addEventListener('load',()=>{
+      initBootScreen();initMenus();initDesktop();initBBS();initDraggables();
+    });
+  </script>
+</body>
+</html>
+

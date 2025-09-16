@@ -1,0 +1,3 @@
+export const WM=(()=>{let z=8;const windows=new Set();function focus(w){windows.forEach(v=>v.classList.remove('active'));w.style.zIndex=++z;w.classList.add('active');}
+function draggable(w){const bar=w.querySelector('.title-bar');let sx=0,sy=0,l=0,t=0,down=false;bar.addEventListener('mousedown',e=>{down=true;focus(w);sx=e.clientX;sy=e.clientY;const r=w.getBoundingClientRect();l=r.left;t=r.top;e.preventDefault();});window.addEventListener('mousemove',e=>{if(!down)return;w.style.left=l+(e.clientX-sx)+'px';w.style.top=t+(e.clientY-sy)+'px';});window.addEventListener('mouseup',()=>down=false);}
+return{register(w){windows.add(w);draggable(w);focus(w);w.querySelectorAll('.close').forEach(b=>b.addEventListener('click',()=>w.remove()));}}})();

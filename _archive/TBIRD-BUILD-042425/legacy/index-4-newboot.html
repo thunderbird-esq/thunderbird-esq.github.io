@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>THUNDERBIRD BBS</title>
+  <meta name="GENERATOR" content="THUNDERBIRD BBS (C) 1989">
+  <style>
+    /**
+     * THUNDERBIRD BBS - System 6 Desktop Simulation with Boot-Up
+     * Based on System.css by Sakun Acharige
+     */
+
+    /* Font Definitions */
+    @font-face {
+      font-family: Chicago;
+      src: url("fonts/ChicagoFLF.woff") format("woff"),
+           url("fonts/ChicagoFLF.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Chicago_12;
+      src: url("fonts/ChiKareGo2.woff") format("woff"),
+           url("fonts/ChiKareGo2.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Geneva_9;
+      src: url("fonts/FindersKeepers.woff") format("woff"),
+           url("fonts/FindersKeepers.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Monaco;
+      src: url("fonts/monaco.woff") format("woff"),
+           url("fonts/monaco.woff2") format("woff2");
+    }
+
+    /* CSS Variables */
+    :root {
+      --box-shadow: 2px 2px;
+      --element-spacing: 8px;
+      --grouped-element-spacing: 6px;
+      --radio-width: 12px;
+      --checkbox-width: 13px;
+      --radio-label-spacing: 6px;
+      --radio-total-width-precalc: calc(var(--radio-width) + var(--radio-label-spacing));
+      --radio-total-width: calc(var(--radio-total-width-precalc));
+      --radio-left: calc(-1 * var(--radio-total-width-precalc));
+      --radio-dot-width: 6px;
+      --radio-dot-top: calc(var(--radio-width) / 2 - var(--radio-dot-width) / 2);
+      --radio-dot-left: calc(-1 * var(--radio-total-width-precalc) + var(--radio-width) / 2 - var(--radio-dot-width) / 2);
+      --checkbox-total-width-precalc: calc(var(--checkbox-width) + var(--radio-label-spacing));
+      --checkbox-total-width: calc(var(--checkbox-total-width-precalc));
+      --checkbox-left: calc(-1 * var(--checkbox-total-width-precalc));
+      --checkmark-width: 12px;
+      --checkmark-top: 2px;
+      --checkmark-left: 2px;
+      --sys-color-white: #FFFFFF;
+      --sys-color-black: #000000;
+      --sys-color-grey: #A5A5A5;
+      --sys-color-darkgrey: #B6B7B8;
+      --primary: var(--sys-color-white);
+      --secondary: var(--sys-color-black);
+      --tertiary: var(--sys-color-grey);
+      --disabled: var(--sys-color-darkgrey);
+    }
+
+    /* Body */
+    body {
+      background: var(--sys-color-black);
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inconsolata", Menlo, Chicago, Geneva;
+      font-size: 18px;
+      letter-spacing: -0.025em;
+      overflow: hidden;
+    }
+
+    /* Boot Screen */
+    .boot-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: var(--sys-color-black);
+      z-index: 2000;
+    }
+    .boot-icon {
+      width: 64px;
+      height: 64px;
+      cursor: pointer;
+    }
+    .boot-icon-label {
+      margin-top: 8px;
+      font-family: Chicago_12;
+      font-size: 12px;
+      color: var(--primary);
+      text-align: center;
+    }
+    .boot-icon-label .question-mark {
+      display: inline-block;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    /* Desktop (Hidden Initially) */
+    .desktop-container {
+      display: none;
+      background: linear-gradient(90deg, var(--primary) 21px, transparent 1%) center,
+                  linear-gradient(var(--primary) 21px, transparent 1%) center,
+                  var(--secondary);
+      background-size: 22px 22px;
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+
+    /* Desktop Menu Bar */
+    .desktop-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--primary);
+      border-bottom: 0.1rem solid var(--secondary);
+      z-index: 1000;
+    }
+
+    /* Desktop Icons */
+    .desktop {
+      position: fixed;
+      top: 2rem;
+      left: 1rem;
+      right: 1rem;
+      bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      z-index: 1;
+    }
+    .desktop-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 64px;
+      margin: 1rem;
+      cursor: pointer;
+      font-family: Chicago_12;
+      font-size: 12px;
+      color: var(--secondary);
+      text-align: center;
+    }
+    .desktop-icon img {
+      width: 32px;
+      height: 32px;
+      margin-bottom: 4px;
+      border: 1px solid var(--secondary);
+      background: var(--primary);
+    }
+    .desktop-icon:hover {
+      background: var(--secondary);
+      color: var(--primary);
+    }
+
+    /* Boot Dialog */
+    .boot-dialog {
+      position: absolute;
+      width: 600px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--primary);
+      z-index: 2001;
+      display: none;
+    }
+    .outer-border {
+      border: 2px solid var(--secondary);
+      padding: 3px;
+    }
+    .inner-border {
+      border-top: 3.5px solid var(--secondary);
+      border-bottom: 3.5px solid var(--secondary);
+      border-left: 5px solid var(--secondary);
+      border-right: 5px solid var(--secondary);
+      padding: 10px;
+    }
+    .boot-text {
+      white-space: pre-wrap;
+      line-height: 1.5em;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      display: none;
+      text-align: left;
+      color: var(--tertiary);
+      font-family: Monaco, monospace;
+      font-size: 18px; /* Matches BBS terminal */
+      max-height: 300px;
+      overflow: hidden;
+    }
+    .boot-text .ok { color: #0f0; }
+    .boot-text .fail { color: #f00; }
+    .progress-section {
+      text-align: left;
+      color: #0ff;
+      font-family: Monaco, monospace;
+      font-size: 18px; /* Matches BBS terminal */
+      margin-top: 10px;
+    }
+    #progressBar {
+      color: #FFC107;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 22px;
+      background-color: var(--primary);
+    }
+    ::-webkit-scrollbar-track {
+      background: linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%),
+                  linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%);
+      background-color: var(--primary);
+      background-size: 4px 4px;
+      background-position: 0 0, 2px 2px;
+      width: 10px;
+      border-left: 3px solid var(--secondary);
+    }
+    ::-webkit-scrollbar-thumb {
+      width: 20px;
+      box-sizing: content-box;
+      background-color: var(--primary);
+      border: 2px solid var(--secondary);
+      border-right: none;
+    }
+    ::-webkit-scrollbar-button:vertical:start {
+      background: url("icon/scrollbar-up.svg") no-repeat;
+      height: 23.38px;
+    }
+    ::-webkit-scrollbar-button:vertical:start:active {
+      background: url("icon/scrollbar-up-active.svg") no-repeat;
+    }
+    ::-webkit-scrollbar-button:vertical:end {
+      background: url("icon/scrollbar-down.svg") no-repeat;
+      height: 23.38px;
+    }
+    ::-webkit-scrollbar-button:vertical:end:active {
+      background: url("icon/scrollbar-down-active.svg") no-repeat;
+    }
+
+    /* Window */
+    .window {
+      flex-direction: column;
+      position: absolute;
+      min-width: 320px;
+      max-width: 640px;
+      background-color: var(--primary);
+      border: 0.1em solid var(--secondary);
+      font-family: "Inconsolata", Menlo, Chicago, Geneva;
+      box-shadow: var(--box-shadow);
+      z-index: 100;
+      display: none;
+    }
+    .window.draggable {
+      cursor: move;
+    }
+
+    /* Modem Dialog */
+    .modal-dialog {
+      position: absolute;
+      width: 400px;
+      background: var(--primary);
+      z-index: 200;
+      display: none;
+    }
+
+    /* Title Bar */
+    .title-bar {
+      display: flex;
+      align-items: center;
+      height: 1.5rem;
+      margin: 0.1rem 0;
+      padding: 0.2rem 0.1rem;
+      background: linear-gradient(var(--secondary) 50%, transparent 50%);
+      background-size: 6.6666666667% 13.3333333333%;
+      background-clip: content-box;
+    }
+    .title-bar .title {
+      padding: 0 0.5em;
+      margin: 0 auto;
+      font-size: 1.5rem;
+      font-weight: bold;
+      line-height: 1.1;
+      text-align: center;
+      background: var(--primary);
+      cursor: default;
+      font-family: Chicago_12;
+    }
+    .title-bar button {
+      position: relative;
+      display: block;
+      width: 40px;
+      height: 40px;
+      margin: 0 0.2rem;
+      border: 4px solid var(--secondary);
+      background-color: var(--primary);
+      cursor: pointer;
+      transform: scale(0.5);
+    }
+    .title-bar button.close::before, .title-bar button.close::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      opacity: 0;
+    }
+    .title-bar button.close::before {
+      background: linear-gradient(var(--secondary) 0%, var(--secondary) 100%) left center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) right center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center top,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center bottom;
+      background-size: 30% 4px, 30% 4px, 4px 30%, 4px 30%;
+      background-repeat: no-repeat;
+    }
+    .title-bar button.close::after {
+      background: linear-gradient(var(--secondary) 0%, var(--secondary) 100%) left center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) right center,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center top,
+                  linear-gradient(var(--secondary) 0%, var(--secondary) 100%) center bottom;
+      background-size: 22.5% 3.6363636364px, 22.5% 3.6363636364px, 3.6363636364px 22.5%, 3.6363636364px 22.5%;
+      background-repeat: no-repeat;
+      transform: rotate(45deg) scale(1.1);
+    }
+    .title-bar button.close:active::before, .title-bar button.close:active::after {
+      opacity: 1;
+    }
+    .title-bar button.resize {
+      background: linear-gradient(var(--secondary) 0%, var(--secondary) 100%) left 58%,
+                 linear-gradient(to bottom, var(--secondary) 0%, var(--secondary) 100%) 58% top;
+      background-size: 60% 4px, 4px 60%;
+      background-repeat: no-repeat;
+      background-color: var(--primary);
+    }
+    .title-bar button.resize:active {
+      background: var(--primary);
+    }
+
+    /* Separator */
+    .separator {
+      flex: none;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      border-top: 0.1rem solid var(--secondary);
+      border-width: 0.1rem 0;
+    }
+
+    /* Window Pane */
+    .window-pane {
+      overflow-y: auto;
+      padding: 1rem 2rem;
+      font-size: 18px;
+      letter-spacing: -0.025em;
+    }
+    .window-pane::-webkit-scrollbar {
+      width: 22px;
+      background-color: var(--primary);
+    }
+    .window-pane::-webkit-scrollbar-track {
+      background: linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%),
+                  linear-gradient(45deg, var(--secondary) 25%, transparent 25%, transparent 75%, var(--secondary) 75%);
+      background-color: var(--primary);
+      background-size: 4px 4px;
+      background-position: 0 0, 2px 2px;
+      width: 10px;
+      border-left: 4px solid var(--secondary);
+    }
+    .window-pane::-webkit-scrollbar-thumb {
+      width: 20px;
+      box-sizing: content-box;
+      background-color: var(--primary);
+      border: 2px solid var(--secondary);
+      border-right: none;
+    }
+
+    /* Buttons */
+    .btn, .btn-default {
+      min-height: 20px;
+      min-width: 59px;
+      padding: 0 20px;
+      background: var(--primary);
+      border-style: solid;
+      border-width: 5.5px;
+      border-image: url("icon/button.svg") 30 stretch;
+      color: var(--secondary);
+      text-align: center;
+      text-decoration: none;
+      font-size: 18px;
+      font-family: Chicago_12;
+      cursor: pointer;
+    }
+    .btn:active {
+      background: var(--secondary);
+      border-radius: 6px;
+      color: var(--primary);
+    }
+    .btn:disabled {
+      color: var(--disabled);
+    }
+    .btn-default {
+      border-image: url("icon/button-default.svg") 60 stretch;
+      border-width: 0.5em;
+    }
+    .btn-default:active {
+      border-radius: 12px;
+    }
+
+    /* Input */
+    input[type="text"] {
+      border: 1.5px solid var(--secondary);
+      font-family: Chicago_12;
+      font-size: 18px;
+      padding-left: 5px;
+    }
+    input[type="text"]:focus-visible {
+      background: var(--secondary);
+      color: var(--primary);
+      outline: none;
+    }
+
+    /* Menu Bar */
+    ul[role="menu-bar"] {
+      display: flex;
+      background: var(--primary);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      cursor: pointer;
+      font-family: Chicago_12;
+      font-size: 1em;
+    }
+    ul[role="menu-bar"] > [role="menu-item"] {
+      position: relative;
+      padding: 6px 10px;
+    }
+    ul[role="menu-bar"] > [role="menu-item"]:hover,
+    ul[role="menu-bar"] > [role="menu-item"]:focus {
+      background: var(--secondary);
+      color: var(--primary);
+      outline: none;
+    }
+    ul[role="menu"] {
+      display: none;
+      position: absolute;
+      min-width: 200px;
+      background: var(--primary);
+      color: var(--secondary);
+      border: 1px solid var(--secondary);
+      box-shadow: var(--box-shadow);
+      padding: 0;
+      margin: 0;
+      z-index: 100;
+    }
+    ul[role="menu"]::before {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      left: 28px;
+      width: 2px;
+      box-shadow: inset 1px 0 rgba(0, 0, 0, 0.15), inset -1px 0 var(--primary);
+    }
+    ul[role="menu"] > [role="menu-item"] > a {
+      all: unset;
+      position: relative;
+      padding: 5px 20px;
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    ul[role="menu"] > [role="menu-item"] > a:hover,
+    ul[role="menu"] > [role="menu-item"] > a:focus {
+      background: var(--secondary);
+      color: var(--primary);
+    }
+    ul[role="menu-item"].divider::after {
+      content: "";
+      pointer-events: none;
+      display: block;
+      padding: 0;
+      border-top: 1.5px dotted var(--secondary);
+    }
+
+    /* Field Row */
+    .field-row {
+      display: flex;
+      align-items: center;
+      font-family: Chicago_12;
+      font-size: 1em;
+    }
+    .field-row > * + * {
+      margin-left: var(--grouped-element-spacing);
+    }
+    .modeless-text {
+      font-family: Chicago_12;
+      font-size: 1em;
+      font-weight: normal;
+    }
+
+    /* BBS-Specific Styles */
+    #modem-sequence .window-pane {
+      color: #00FF00;
+      font-family: Monaco, monospace;
+      white-space: pre-wrap;
+      height: 200px;
+      text-align: center;
+    }
+    .message-area {
+      height: 300px;
+      overflow-y: auto;
+      font-family: Monaco, monospace;
+      white-space: pre-wrap;
+      line-height: 1.2;
+    }
+    .banner-container {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+      font-family: Monaco, monospace;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .welcome-box {
+      text-align: center;
+      margin: 20px auto;
+    }
+    .welcome-box-inner {
+      display: inline-block;
+      padding: 10px;
+      background: var(--primary);
+      border: 2px solid var(--secondary);
+      font-family: Monaco, monospace;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 600px) {
+      .banner-container {
+        font-size: 6px;
+      }
+      .window, .modal-dialog, .boot-dialog {
+        margin: 0.5rem;
+        min-width: 280px;
+        max-width: 100%;
+      }
+      .desktop-icon {
+        width: 48px;
+        font-size: 10px;
+      }
+      .desktop-icon img {
+        width: 24px;
+        height: 24px;
+      }
+      .boot-icon {
+        width: 48px;
+        height: 48px;
+      }
+      .boot-icon-label {
+        font-size: 10px;
+      }
+    }
+
+    /* CRT Flicker Animation */
+    @keyframes crt-flicker {
+      0% { opacity: 0.9; }
+      100% { opacity: 1; }
+    }
+    .message-area, .boot-text, .progress-section {
+      animation: crt-flicker 0.1s infinite alternate;
+    }
+  </style>
+</head>
+<body>
+  <!-- Boot Screen -->
+  <div id="boot-screen" class="boot-screen">
+    <img id="boot-icon" class="boot-icon" src="assets/images/eye-icon.png" alt="THUNDERBIRD OS Icon">
+    <div class="boot-icon-label">
+      THUNDERBIRD OS <span class="question-mark">?</span>
+    </div>
+  </div>
+
+  <!-- Boot Dialog -->
+  <div id="boot-dialog" class="boot-dialog outer-border">
+    <div class="inner-border">
+      <div class="title-bar">
+        <button aria-label="Close" class="close" disabled></button>
+        <h1 class="title">THUNDERBIRD OS Boot</h1>
+        <button aria-label="Resize" class="resize" disabled></button>
+      </div>
+      <pre class="boot-text" id="bootText"></pre>
+      <div class="progress-section" id="progressSection" style="display: none;">
+        <pre id="progressHeader">THUNDERBIRD OS v1.0.0 Booting...</pre>
+        <pre id="progressBar"></pre>
+        <pre id="status">Initializing...</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Container -->
+  <div id="desktop-container" class="desktop-container">
+    <!-- Desktop Menu Bar -->
+    <div class="desktop-menu">
+      <ul role="menu-bar">
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          <span class="apple" aria-label="Apple"></span>
+          <ul role="menu">
+            <li role="menu-item"><a href="#about" style="text-decoration:none; color:inherit;">About THUNDERBIRD BBS</a></li>
+            <li role="menu-item" class="divider"></li>
+            <li role="menu-item"><a href="#prefs" style="text-decoration:none; color:inherit;">Preferences</a></li>
+          </ul>
+        </li>
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          File
+          <ul role="menu">
+            <li role="menu-item"><a href="#open" style="text-decoration:none; color:inherit;">Open</a></li>
+            <li role="menu-item"><a href="#close" style="text-decoration:none; color:inherit;">Close</a></li>
+            <li role="menu-item" class="divider"></li>
+            <li role="menu-item"><a href="#quit" style="text-decoration:none; color:inherit;">Quit</a></li>
+          </ul>
+        </li>
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          Edit
+          <ul role="menu">
+            <li role="menu-item"><a href="#copy" style="text-decoration:none; color:inherit;">Copy</a></li>
+            <li role="menu-item"><a href="#paste" style="text-decoration:none; color:inherit;">Paste</a></li>
+          </ul>
+        </li>
+        <li role="menu-item" tabindex="0" aria-haspopup="true" style="margin-left:auto;">
+          Special
+          <ul role="menu" style="right:0;">
+            <li role="menu-item"><a href="#settings" style="text-decoration:none; color:inherit;">Settings</a></li>
+            <li role="menu-item"><a href="#about" style="text-decoration:none; color:inherit;">About</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Desktop Icons -->
+    <div class="desktop">
+      <div class="desktop-icon" data-target="bbs-window">
+        <img src="icon/bbs-icon.svg" alt="THUNDERBIRD BBS Icon">
+        <span>THUNDERBIRD BBS</span>
+      </div>
+    </div>
+
+    <!-- Modem Sequence Window -->
+    <div id="modem-sequence" class="modal-dialog outer-border" style="top: 20%; left: 50%; transform: translateX(-50%);">
+      <div class="inner-border">
+        <div class="title-bar">
+          <button aria-label="Close" class="close"></button>
+          <h1 class="title">Connecting...</h1>
+          <button aria-label="Resize" class="resize" disabled></button>
+        </div>
+        <div class="window-pane" id="modem-text"></div>
+      </div>
+    </div>
+
+    <!-- BBS Interface Window -->
+    <div id="bbs-window" class="window" style="top: 10%; left: 50%; transform: translateX(-50%);">
+      <div class="title-bar">
+        <button aria-label="Close" class="close"></button>
+        <h1 class="title">THUNDERBIRD BBS</h1>
+        <button aria-label="Resize" class="resize"></button>
+      </div>
+      <div class="separator"></div>
+
+      <ul role="menu-bar">
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          File
+          <ul role="menu">
+            <li role="menu-item"><a href="#login" style="text-decoration:none; color:inherit;">Login</a></li>
+            <li role="menu-item"><a href="#register" style="text-decoration:none; color:inherit;">Register</a></li>
+            <li role="menu-item" class="divider"></li>
+            <li role="menu-item"><a href="#exit" style="text-decoration:none; color:inherit;">Exit</a></li>
+          </ul>
+        </li>
+        <li role="menu-item" tabindex="0" aria-haspopup="true">
+          Messages
+          <ul role="menu">
+            <li role="menu-item"><a href="#new" style="text-decoration:none; color:inherit;">New Post</a></li>
+            <li role="menu-item"><a href="#inbox" style="text-decoration:none; color:inherit;">Inbox</a></li>
+          </ul>
+        </li>
+        <li role="menu-item" tabindex="0" aria-haspopup="true" style="margin-left:auto;">
+          Special
+          <ul role="menu" style="right:0;">
+            <li role="menu-item"><a href="#settings" style="text-decoration:none; color:inherit;">Settings</a></li>
+            <li role="menu-item"><a href="#about" style="text-decoration:none; color:inherit;">About</a></li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="window-pane message-area" id="message-display">
+        <!-- Banner will be inserted here by JavaScript -->
+      </div>
+
+      <div class="separator"></div>
+      <div class="window-pane">
+        <div class="field-row">
+          <label for="bbs-command" class="modeless-text">COMMAND:</label>
+          <input id="bbs-command" type="text" placeholder="Type HELP">
+        </div>
+        <div class="field-row" style="justify-content: flex-end;">
+          <button class="btn">CLEAR</button>
+          <button class="btn btn-default">SEND</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio -->
+  <audio id="systemChirp" src="assets/audio/system-chirp.mp3" loop></audio>
+  <audio id="fanSound1" src="assets/audio/fan-hum.mp3"></audio>
+  <audio id="fanSound2" src="assets/audio/fan-hum-2.mp3"></audio>
+  <audio id="clicksSound" src="assets/audio/floppy-clicks.mp3" loop></audio>
+  <audio id="bootBeep" src="assets/audio/startup-beep.mp3"></audio>
+
+  <!-- Draggabilly -->
+  <script src="https://unpkg.com/draggabilly@3.0.0/dist/draggabilly.pkgd.min.js"></script>
+
+  <script>
+    // Boot-Up Sequence
+    const bootLines = [
+      "Running diagnostics... <span class='ok'>[OK]</span>",
+      "Testing memory... <span class='ok'>[OK]</span>",
+      "Booting from ROM BIOS... <span class='ok'>[OK]</span>",
+      "Checking floppy disk drives... <span class='fail'>[FAIL - No floppy detected]</span>",
+      "Probing PCI buses... <span class='ok'>[OK]</span>",
+      "Loading quantum cache... <span class='ok'>[OK]</span>",
+      "Verifying hexadecimal transport matrix... <span class='ok'>[OK]</span>",
+      "Initializing THUNDERBIRD OS... <span class='ok'>[OK]</span>",
+      "Syncing with orbital relays... <span class='ok'>[OK]</span>",
+      "Finalizing system integrity check... <span class='ok'>[OK]</span>"
+    ];
+
+    let bootIndex = 0;
+    let isChirping = true;
+
+    function initBootScreen() {
+      const chirpSound = document.getElementById('systemChirp');
+      chirpSound.volume = 0.3;
+      chirpSound.onerror = () => console.log('System chirp failed to load');
+      chirpSound.play();
+
+      document.getElementById('boot-icon').addEventListener('click', () => {
+        isChirping = false;
+        chirpSound.pause();
+        document.querySelector('.boot-icon-label .question-mark').style.animation = 'none';
+        document.querySelector('.boot-icon-label .question-mark').style.opacity = '1';
+        startBoot();
+      });
+    }
+
+    function startBoot() {
+      document.getElementById('boot-dialog').style.display = 'block';
+
+      const fanSound1 = document.getElementById('fanSound1');
+      const fanSound2 = document.getElementById('fanSound2');
+      const clicksSound = document.getElementById('clicksSound');
+      const bootBeep = document.getElementById('bootBeep');
+
+      fanSound1.volume = 0.4;
+      fanSound2.volume = 0;
+      clicksSound.volume = 0.3;
+
+      fanSound1.onerror = () => console.log('Fan sound 1 failed to load');
+      fanSound2.onerror = () => console.log('Fan sound 2 failed to load');
+      clicksSound.onerror = () => console.log('Clicks sound failed to load');
+      bootBeep.onerror = () => console.log('Boot beep failed to load');
+
+      fanSound1.play();
+
+      const crossfadeDuration = 2000;
+      let isFirstPlaying = true;
+
+      function crossfade() {
+        if (isFirstPlaying) {
+          fanSound2.currentTime = 0;
+          fanSound2.play();
+          fadeOut(fanSound1, crossfadeDuration);
+          fadeIn(fanSound2, crossfadeDuration);
+        } else {
+          fanSound1.currentTime = 0;
+          fanSound1.play();
+          fadeOut(fanSound2, crossfadeDuration);
+          fadeIn(fanSound1, crossfadeDuration);
+        }
+        isFirstPlaying = !isFirstPlaying;
+      }
+
+      fanSound1.addEventListener('timeupdate', function() {
+        if (fanSound1.duration - fanSound1.currentTime <= crossfadeDuration / 1000) {
+          crossfade();
+        }
+      });
+
+      fanSound2.addEventListener('timeupdate', function() {
+        if (fanSound2.duration - fanSound2.currentTime <= crossfadeDuration / 1000) {
+          crossfade();
+        }
+      });
+
+      function fadeIn(audio, duration) {
+        let volume = 0;
+        const increment = 0.4 / (duration / 50);
+        const interval = setInterval(() => {
+          if (volume >= 0.4) {
+            clearInterval(interval);
+            audio.volume = 0.4;
+          } else {
+            volume += increment;
+            audio.volume = Math.min(volume, 0.4);
+          }
+        }, 50);
+      }
+
+      function fadeOut(audio, duration) {
+        let volume = audio.volume;
+        const decrement = volume / (duration / 50);
+        const interval = setInterval(() => {
+          if (volume <= 0) {
+            clearInterval(interval);
+            audio.volume = 0;
+            audio.pause();
+          } else {
+            volume -= decrement;
+            audio.volume = Math.max(volume, 0);
+          }
+        }, 50);
+      }
+
+      clicksSound.play();
+      bootBeep.play();
+
+      showNextLine();
+    }
+
+    function showNextLine() {
+      const bootText = document.getElementById('bootText');
+      if (bootIndex < bootLines.length) {
+        bootText.innerHTML += bootLines[bootIndex] + '\n';
+        bootText.style.opacity = 1;
+        bootText.style.display = 'block';
+        bootIndex++;
+        setTimeout(showNextLine, 2600);
+      } else {
+        const bootTextHeight = bootText.offsetHeight;
+        const progressSection = document.getElementById('progressSection');
+        progressSection.style.marginTop = `${bootTextHeight + 10}px`;
+        progressSection.style.display = 'block';
+        simulateLoading();
+      }
+    }
+
+    function simulateLoading() {
+      let progress = 0;
+      const bar = document.getElementById('progressBar');
+      const status = document.getElementById('status');
+      const clicks = document.getElementById('clicksSound');
+      const stages = [
+        'Initializing...',
+        'Connecting to THUNDERBIRD Network...',
+        'Fetching Messages...',
+        'Boot Complete!'
+      ];
+      let stageIndex = 0;
+
+      const interval = setInterval(() => {
+        if (progress >= 100) {
+          bar.textContent = '[△△△△△△△△△△△△△△△△△△△△] 100%';
+          clearInterval(interval);
+          clicks.pause();
+          status.textContent = 'Boot Complete!';
+          setTimeout(() => {
+            document.getElementById('boot-screen').style.display = 'none';
+            document.getElementById('boot-dialog').style.display = 'none';
+            document.getElementById('desktop-container').style.display = 'block';
+          }, 2000);
+        } else {
+          progress += 2;
+          const triangles = Math.floor(progress / 5);
+          const spaces = 20 - triangles;
+          bar.textContent = '[' + '△'.repeat(triangles) + ' '.repeat(spaces) + '] ' + Math.round(progress) + '%';
+          if (progress % 25 === 0 && stageIndex < stages.length - 1) {
+            stageIndex++;
+            status.textContent = stages[stageIndex];
+          }
+          clicks.volume = 0.2 + Math.random() * 0.1;
+        }
+      }, 100);
+    }
+
+    // Banner Generator
+    function createBanner() {
+      const asciiArt = `
+████████╗██╗  ██╗██╗   ██╗███╗   ██╗██████╗ ███████╗██████╗ ██████╗ ██╗██████╗ ██████╗ 
+╚══██╔══╝██║  ██║██║   ██║████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔══██╗██║██╔══██╗██╔══██╗
+   ██║   ███████║██║   ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝██████╔╝██║██████╔╝██║  ██║
+   ██║   ██╔══██║██║   ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗██╔══██╗██║██╔══██╗██║  ██║
+   ██║   ██║  ██║╚██████╔╝██║ ╚████║██████╔╝███████╗██║  ██║██████╔╝██║██║  ██║██████╔╝
+   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═╝╚═════╝
+`.trim();
+
+      return `
+        <div class="banner-container">${asciiArt}</div>
+        <div class="welcome-box">
+          <div class="welcome-box-inner">
+            ┌───────────────────────┐<br>
+            │   WELCOME TO THE BBS  │<br>
+            └───────────────────────┘
+          </div>
+        </div>
+      `;
+    }
+
+    // Modem Connection Sequence
+    function startModemSequence(callback) {
+      const modemText = document.getElementById('modem-text');
+      const modemSequence = [
+        "ATZ",
+        "OK",
+        "ATDT555-1234",
+        "CONNECT 2400",
+        "NEGOTIATING PROTOCOL...",
+        "HANDSHAKE COMPLETE",
+        "LOGGING INTO SYSTEM...",
+        "CONNECTION ESTABLISHED"
+      ];
+
+      let step = 0;
+      function nextStep() {
+        if (step < modemSequence.length) {
+          modemText.innerHTML += modemSequence[step] + "<br>";
+          step++;
+          setTimeout(nextStep, 800);
+        } else {
+          callback();
+        }
+      }
+      nextStep();
+    }
+
+    // BBS Command Handler
+    function initBBS() {
+      document.getElementById('bbs-command').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          const command = this.value.toUpperCase();
+          const terminal = document.getElementById('message-display');
+          
+          if (command === 'HELP') {
+            terminal.innerHTML += '\n\nCOMMANDS: HELP, LOGIN, LIST, QUIT';
+          } else if (command === 'LOGIN') {
+            terminal.innerHTML += '\n\nLOGIN FEATURE COMING SOON';
+          } else {
+            terminal.innerHTML += '\n\nUNKNOWN COMMAND';
+          }
+          
+          this.value = '';
+          terminal.scrollTop = terminal.scrollHeight;
+        }
+      });
+
+      document.querySelector('.btn:not(.btn-default)').addEventListener('click', function() {
+        document.getElementById('message-display').innerHTML = createBanner();
+      });
+    }
+
+    // Menu Functionality
+    function initMenus() {
+      document.querySelectorAll('[aria-haspopup="true"]').forEach(menuItem => {
+        menuItem.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const menu = this.querySelector('ul[role="menu"]');
+          if (menu.style.display === 'block') {
+            menu.style.display = 'none';
+          } else {
+            document.querySelectorAll('ul[role="menu"]').forEach(m => {
+              m.style.display = 'none';
+            });
+            menu.style.display = 'block';
+          }
+        });
+      });
+
+      document.addEventListener('click', function() {
+        document.querySelectorAll('ul[role="menu"]').forEach(menu => {
+          menu.style.display = 'none';
+        });
+      });
+    }
+
+    // Desktop Icon Click Handler
+    function initDesktop() {
+      document.querySelectorAll('.desktop-icon').forEach(icon => {
+        icon.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          const modemWindow = document.getElementById('modem-sequence');
+          const bbsWindow = document.getElementById(targetId);
+
+          modemWindow.style.display = 'block';
+          startModemSequence(() => {
+            modemWindow.style.display = 'none';
+            bbsWindow.style.display = 'block';
+            document.getElementById('message-display').innerHTML = createBanner();
+          });
+        });
+      });
+    }
+
+    // Draggable Windows
+    function initDraggables() {
+      const windows = document.querySelectorAll('.window');
+      windows.forEach(window => {
+        const draggie = new Draggabilly(window, {
+          handle: '.title-bar',
+          containment: 'body'
+        });
+        window.classList.add('draggable');
+      });
+    }
+
+    // Initialize Everything
+    window.onload = function() {
+      initBootScreen();
+      initMenus();
+      initDesktop();
+      initBBS();
+      initDraggables();
+    };
+  </script>
+</body>
+</html>

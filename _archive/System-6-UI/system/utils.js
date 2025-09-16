@@ -1,0 +1,1 @@
+export const $=sel=>document.querySelector(sel);export const delay=ms=>new Promise(r=>setTimeout(r,ms));export const snap=n=>Math.round(n/8)*8;export function createEl(tag,attrs={},...c){const e=document.createElement(tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));e.append(...c);return e;}
